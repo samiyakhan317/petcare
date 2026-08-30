@@ -1,0 +1,458 @@
+@extends('layouts.app')
+
+@section('title', 'Create Grooming Report')
+
+@section('content')
+
+<style>
+
+    .report-page {
+        min-height: calc(100vh - 70px);
+        background:
+            linear-gradient(
+                135deg,
+                #e8f4ff,
+                #f7fbff,
+                #dff3f0
+            );
+        padding: 50px 40px;
+    }
+
+    .report-container {
+        max-width: 750px;
+        margin: 0 auto;
+    }
+
+    .report-card {
+        background: white;
+        padding: 35px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+    }
+
+    .report-card h1 {
+        color: #285b94;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #777;
+        margin-bottom: 30px;
+    }
+
+    .appointment-info {
+        background: #f0f6fc;
+        padding: 18px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+    }
+
+    .appointment-info p {
+        margin: 6px 0;
+        color: #555;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        color: #444;
+        margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 7px;
+        font-size: 15px;
+        box-sizing: border-box;
+    }
+
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .error {
+        color: #c62828;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+
+    .buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    .button {
+        padding: 12px 22px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .save-button {
+        background:
+            linear-gradient(
+                135deg,
+                #3478c9,
+                #54a4df
+            );
+        color: white;
+    }
+
+    .save-button:hover {
+        background: #285b94;
+    }
+
+    .back-button {
+        background: #eee;
+        color: #555;
+    }
+
+    .back-button:hover {
+        background: #ddd;
+    }
+
+    @media (max-width: 700px) {
+
+        .report-page {
+            padding: 30px 20px;
+        }
+
+        .report-card {
+            padding: 25px;
+        }
+
+        .buttons {
+            flex-direction: column;
+        }
+
+    }
+
+</style>
+
+<div class="report-page">
+
+```
+<div class="report-container">
+
+    <div class="report-card">
+
+        <h1>
+            Create Grooming Report
+        </h1>
+
+        <p class="subtitle">
+            Record the grooming details for this appointment.
+        </p>
+
+
+        {{-- Success Message --}}
+
+        @if(session('success'))
+
+            <div style="
+                background: #e8f8ee;
+                color: #218838;
+                border: 1px solid #b8e6c8;
+                padding: 12px 15px;
+                border-radius: 7px;
+                margin-bottom: 20px;
+            ">
+                {{ session('success') }}
+            </div>
+
+        @endif
+
+
+        {{-- Error Message --}}
+
+        @if(session('error'))
+
+            <div style="
+                background: #fdecec;
+                color: #c62828;
+                border: 1px solid #f5b5b5;
+                padding: 12px 15px;
+                border-radius: 7px;
+                margin-bottom: 20px;
+            ">
+                {{ session('error') }}
+            </div>
+
+        @endif
+
+
+        {{-- Validation Errors --}}
+
+        @if($errors->any())
+
+            <div style="
+                background: #fdecec;
+                color: #c62828;
+                border: 1px solid #f5b5b5;
+                padding: 12px 15px;
+                border-radius: 7px;
+                margin-bottom: 20px;
+            ">
+
+                @foreach($errors->all() as $error)
+
+                    <div>
+                        {{ $error }}
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        @endif
+
+
+        {{-- Appointment Information --}}
+
+        @if(isset($appointment))
+
+            <div class="appointment-info">
+
+                <strong style="color: #285b94;">
+                    Appointment Information
+                </strong>
+
+                <p>
+                    <strong>Appointment ID:</strong>
+                    {{ $appointment->Appointment_ID }}
+                </p>
+
+                @if($appointment->pet)
+
+                    <p>
+                        <strong>Pet:</strong>
+                        {{ $appointment->pet->Name }}
+                    </p>
+
+                @endif
+
+                <p>
+                    <strong>Date:</strong>
+                    {{ \Carbon\Carbon::parse($appointment->Appointment_Date)->format('d M Y') }}
+                </p>
+
+                <p>
+                    <strong>Time:</strong>
+                    {{ \Carbon\Carbon::parse($appointment->Appointment_Time)->format('h:i A') }}
+                </p>
+
+            </div>
+
+        @endif
+
+
+        {{-- Create Report Form --}}
+
+        <form
+            method="POST"
+            action="{{ route('grooming-reports.store', $appointment->Appointment_ID) }}"
+        >
+
+            @csrf
+
+
+            {{-- COAT CONDITION --}}
+
+            <div class="form-group">
+
+                <label for="Coat_Condition">
+                    Coat Condition
+                </label>
+
+                <input
+                    type="text"
+                    id="Coat_Condition"
+                    name="Coat_Condition"
+                    value="{{ old('Coat_Condition') }}"
+                    placeholder="Example: Clean and healthy"
+                >
+
+                @error('Coat_Condition')
+
+                    <div class="error">
+                        {{ $message }}
+                    </div>
+
+                @enderror
+
+            </div>
+
+
+            {{-- SKIN CONDITION --}}
+
+            <div class="form-group">
+
+                <label for="Skin_Condition">
+                    Skin Condition
+                </label>
+
+                <input
+                    type="text"
+                    id="Skin_Condition"
+                    name="Skin_Condition"
+                    value="{{ old('Skin_Condition') }}"
+                    placeholder="Example: Healthy, no irritation"
+                >
+
+                @error('Skin_Condition')
+
+                    <div class="error">
+                        {{ $message }}
+                    </div>
+
+                @enderror
+
+            </div>
+
+
+            {{-- EAR CLEANING --}}
+
+            <div class="form-group">
+
+                <label for="Ear_Cleaning">
+                    Ear Cleaning
+                </label>
+
+                <input
+                    type="text"
+                    id="Ear_Cleaning"
+                    name="Ear_Cleaning"
+                    value="{{ old('Ear_Cleaning') }}"
+                    placeholder="Example: Completed"
+                >
+
+                @error('Ear_Cleaning')
+
+                    <div class="error">
+                        {{ $message }}
+                    </div>
+
+                @enderror
+
+            </div>
+
+
+            {{-- NAIL TRIMMING --}}
+
+            <div class="form-group">
+
+                <label for="Nail_Trimming">
+                    Nail Trimming
+                </label>
+
+                <input
+                    type="text"
+                    id="Nail_Trimming"
+                    name="Nail_Trimming"
+                    value="{{ old('Nail_Trimming') }}"
+                    placeholder="Example: Completed"
+                >
+
+                @error('Nail_Trimming')
+
+                    <div class="error">
+                        {{ $message }}
+                    </div>
+
+                @enderror
+
+            </div>
+
+
+            {{-- RECOMMENDATION --}}
+
+            <div class="form-group">
+
+                <label for="Recommendation">
+                    Recommendation
+                </label>
+
+                <textarea
+                    id="Recommendation"
+                    name="Recommendation"
+                    placeholder="Enter recommendations for the pet owner..."
+                >{{ old('Recommendation') }}</textarea>
+
+                @error('Recommendation')
+
+                    <div class="error">
+                        {{ $message }}
+                    </div>
+
+                @enderror
+
+            </div>
+
+
+            {{-- GROOMER NOTES --}}
+
+            <div class="form-group">
+
+                <label for="Groomer_Notes">
+                    Grooming Notes
+                </label>
+
+                <textarea
+                    id="Groomer_Notes"
+                    name="Groomer_Notes"
+                    placeholder="Enter additional grooming notes..."
+                >{{ old('Groomer_Notes') }}</textarea>
+
+                @error('Groomer_Notes')
+
+                    <div class="error">
+                        {{ $message }}
+                    </div>
+
+                @enderror
+
+            </div>
+
+
+            {{-- BUTTONS --}}
+
+            <div class="buttons">
+
+                <button
+                    type="submit"
+                    class="button save-button"
+                >
+                    Save Grooming Report
+                </button>
+
+                <a
+                    href="{{ route('grooming-reports.index') }}"
+                    class="button back-button"
+                >
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+```
+
+</div>
+
+@endsection
