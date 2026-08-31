@@ -30,8 +30,8 @@ WORKDIR /var/www/html
 # Copy your codebase into the container
 COPY . .
 
-# Run Composer Install explicitly allowing the PHP 8.3 configuration environment
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+# Force a clean dependency download while completely ignoring lock limitations and dev environments
+RUN composer update --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # Set correct storage and cache permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
