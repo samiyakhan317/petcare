@@ -1,4 +1,4 @@
-FROM php:8.3-apache
+FROM php:8.4-apache
 
 # Install all necessary system libraries for Laravel & Composer
 RUN apt-get update && apt-get install -y \
@@ -30,7 +30,7 @@ WORKDIR /var/www/html
 # Copy your codebase into the container
 COPY . .
 
-# Force a clean dependency download while completely ignoring lock limitations and dev environments
+# Run Composer Update to fix version bounds on PHP 8.4
 RUN composer update --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # Set correct storage and cache permissions
