@@ -27,7 +27,9 @@
         background: white;
         padding: 35px;
         border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+        box-shadow:
+            0 10px 30px
+            rgba(0, 0, 0, 0.10);
     }
 
     .report-card h1 {
@@ -71,6 +73,12 @@
         border-radius: 7px;
         font-size: 15px;
         box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #3478c9;
     }
 
     .form-group textarea {
@@ -123,6 +131,24 @@
         background: #ddd;
     }
 
+    .alert {
+        padding: 12px 15px;
+        border-radius: 7px;
+        margin-bottom: 20px;
+    }
+
+    .alert-success {
+        background: #e8f8ee;
+        color: #218838;
+        border: 1px solid #b8e6c8;
+    }
+
+    .alert-error {
+        background: #fdecec;
+        color: #c62828;
+        border: 1px solid #f5b5b5;
+    }
+
     @media (max-width: 700px) {
 
         .report-page {
@@ -157,54 +183,43 @@
         </p>
 
 
-        {{-- Success Message --}}
+        {{-- =====================================================
+             SUCCESS MESSAGE
+        ====================================================== --}}
 
         @if(session('success'))
 
-            <div style="
-                background: #e8f8ee;
-                color: #218838;
-                border: 1px solid #b8e6c8;
-                padding: 12px 15px;
-                border-radius: 7px;
-                margin-bottom: 20px;
-            ">
+            <div class="alert alert-success">
+
                 {{ session('success') }}
+
             </div>
 
         @endif
 
 
-        {{-- Error Message --}}
+        {{-- =====================================================
+             ERROR MESSAGE
+        ====================================================== --}}
 
         @if(session('error'))
 
-            <div style="
-                background: #fdecec;
-                color: #c62828;
-                border: 1px solid #f5b5b5;
-                padding: 12px 15px;
-                border-radius: 7px;
-                margin-bottom: 20px;
-            ">
+            <div class="alert alert-error">
+
                 {{ session('error') }}
+
             </div>
 
         @endif
 
 
-        {{-- Validation Errors --}}
+        {{-- =====================================================
+             VALIDATION ERRORS
+        ====================================================== --}}
 
         @if($errors->any())
 
-            <div style="
-                background: #fdecec;
-                color: #c62828;
-                border: 1px solid #f5b5b5;
-                padding: 12px 15px;
-                border-radius: 7px;
-                margin-bottom: 20px;
-            ">
+            <div class="alert alert-error">
 
                 @foreach($errors->all() as $error)
 
@@ -219,7 +234,13 @@
         @endif
 
 
-        {{-- Appointment Information --}}
+        {{-- =====================================================
+             APPOINTMENT INFORMATION
+             
+             NO ORM:
+             Pet_Name is directly supplied by the controller
+             from a SQL JOIN.
+        ====================================================== --}}
 
         @if(isset($appointment))
 
@@ -229,28 +250,74 @@
                     Appointment Information
                 </strong>
 
+
                 <p>
-                    <strong>Appointment ID:</strong>
+
+                    <strong>
+                        Appointment ID:
+                    </strong>
+
                     {{ $appointment->Appointment_ID }}
+
                 </p>
 
-                @if($appointment->pet)
-
-                    <p>
-                        <strong>Pet:</strong>
-                        {{ $appointment->pet->Name }}
-                    </p>
-
-                @endif
 
                 <p>
-                    <strong>Date:</strong>
-                    {{ \Carbon\Carbon::parse($appointment->Appointment_Date)->format('d M Y') }}
+
+                    <strong>
+                        Pet:
+                    </strong>
+
+                    {{ $appointment->Pet_Name ?? 'N/A' }}
+
                 </p>
 
+
                 <p>
-                    <strong>Time:</strong>
-                    {{ \Carbon\Carbon::parse($appointment->Appointment_Time)->format('h:i A') }}
+
+                    <strong>
+                        Date:
+                    </strong>
+
+                    @if(!empty($appointment->Appointment_Date))
+
+                        {{ date(
+                            'd M Y',
+                            strtotime(
+                                $appointment->Appointment_Date
+                            )
+                        ) }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </p>
+
+
+                <p>
+
+                    <strong>
+                        Time:
+                    </strong>
+
+                    @if(!empty($appointment->Appointment_Time))
+
+                        {{ date(
+                            'h:i A',
+                            strtotime(
+                                $appointment->Appointment_Time
+                            )
+                        ) }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
                 </p>
 
             </div>
@@ -258,197 +325,249 @@
         @endif
 
 
-        {{-- Edit Report Form --}}
+        {{-- =====================================================
+             EDIT REPORT FORM
+        ====================================================== --}}
 
-        <form
-            method="POST"
-            action="{{ route('grooming-reports.update', $appointment->Appointment_ID) }}"
-        >
+        @if(isset($appointment) && isset($report))
 
-            @csrf
+            <form
+                method="POST"
+                action="{{ route(
+                    'grooming-reports.update',
+                    $appointment->Appointment_ID
+                ) }}"
+            >
 
-            @method('PUT')
+                @csrf
+
+                @method('PUT')
 
 
-            {{-- COAT CONDITION --}}
+                {{-- =================================================
+                     COAT CONDITION
+                ================================================== --}}
 
-            <div class="form-group">
+                <div class="form-group">
 
-                <label for="Coat_Condition">
-                    Coat Condition
-                </label>
+                    <label for="Coat_Condition">
+                        Coat Condition
+                    </label>
 
-                <input
-                    type="text"
-                    id="Coat_Condition"
-                    name="Coat_Condition"
-                    value="{{ old('Coat_Condition', $report->Coat_Condition) }}"
-                    placeholder="Example: Clean and healthy"
-                >
+                    <input
+                        type="text"
+                        id="Coat_Condition"
+                        name="Coat_Condition"
+                        value="{{ old(
+                            'Coat_Condition',
+                            $report->Coat_Condition
+                        ) }}"
+                        placeholder="Example: Clean and healthy"
+                    >
 
-                @error('Coat_Condition')
+                    @error('Coat_Condition')
 
-                    <div class="error">
-                        {{ $message }}
-                    </div>
+                        <div class="error">
+                            {{ $message }}
+                        </div>
 
-                @enderror
+                    @enderror
+
+                </div>
+
+
+                {{-- =================================================
+                     SKIN CONDITION
+                ================================================== --}}
+
+                <div class="form-group">
+
+                    <label for="Skin_Condition">
+                        Skin Condition
+                    </label>
+
+                    <input
+                        type="text"
+                        id="Skin_Condition"
+                        name="Skin_Condition"
+                        value="{{ old(
+                            'Skin_Condition',
+                            $report->Skin_Condition
+                        ) }}"
+                        placeholder="Example: Healthy, no irritation"
+                    >
+
+                    @error('Skin_Condition')
+
+                        <div class="error">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                {{-- =================================================
+                     EAR CLEANING
+                ================================================== --}}
+
+                <div class="form-group">
+
+                    <label for="Ear_Cleaning">
+                        Ear Cleaning
+                    </label>
+
+                    <input
+                        type="text"
+                        id="Ear_Cleaning"
+                        name="Ear_Cleaning"
+                        value="{{ old(
+                            'Ear_Cleaning',
+                            $report->Ear_Cleaning
+                        ) }}"
+                        placeholder="Example: Completed"
+                    >
+
+                    @error('Ear_Cleaning')
+
+                        <div class="error">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                {{-- =================================================
+                     NAIL TRIMMING
+                ================================================== --}}
+
+                <div class="form-group">
+
+                    <label for="Nail_Trimming">
+                        Nail Trimming
+                    </label>
+
+                    <input
+                        type="text"
+                        id="Nail_Trimming"
+                        name="Nail_Trimming"
+                        value="{{ old(
+                            'Nail_Trimming',
+                            $report->Nail_Trimming
+                        ) }}"
+                        placeholder="Example: Completed"
+                    >
+
+                    @error('Nail_Trimming')
+
+                        <div class="error">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                {{-- =================================================
+                     RECOMMENDATION
+                ================================================== --}}
+
+                <div class="form-group">
+
+                    <label for="Recommendation">
+                        Recommendation
+                    </label>
+
+                    <textarea
+                        id="Recommendation"
+                        name="Recommendation"
+                        placeholder="Enter recommendations for the pet owner..."
+                    >{{ old(
+                        'Recommendation',
+                        $report->Recommendation
+                    ) }}</textarea>
+
+                    @error('Recommendation')
+
+                        <div class="error">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                {{-- =================================================
+                     GROOMER NOTES
+                ================================================== --}}
+
+                <div class="form-group">
+
+                    <label for="Groomer_Notes">
+                        Grooming Notes
+                    </label>
+
+                    <textarea
+                        id="Groomer_Notes"
+                        name="Groomer_Notes"
+                        placeholder="Enter additional grooming notes..."
+                    >{{ old(
+                        'Groomer_Notes',
+                        $report->Groomer_Notes
+                    ) }}</textarea>
+
+                    @error('Groomer_Notes')
+
+                        <div class="error">
+                            {{ $message }}
+                        </div>
+
+                    @enderror
+
+                </div>
+
+
+                {{-- =================================================
+                     BUTTONS
+                ================================================== --}}
+
+                <div class="buttons">
+
+                    <button
+                        type="submit"
+                        class="button save-button"
+                    >
+                        Update Grooming Report
+                    </button>
+
+
+                    <a
+                        href="{{ route(
+                            'grooming-reports.index'
+                        ) }}"
+                        class="button back-button"
+                    >
+                        Cancel
+                    </a>
+
+                </div>
+
+            </form>
+
+        @else
+
+            <div class="alert alert-error">
+
+                Grooming report information could not be loaded.
 
             </div>
 
-
-            {{-- SKIN CONDITION --}}
-
-            <div class="form-group">
-
-                <label for="Skin_Condition">
-                    Skin Condition
-                </label>
-
-                <input
-                    type="text"
-                    id="Skin_Condition"
-                    name="Skin_Condition"
-                    value="{{ old('Skin_Condition', $report->Skin_Condition) }}"
-                    placeholder="Example: Healthy, no irritation"
-                >
-
-                @error('Skin_Condition')
-
-                    <div class="error">
-                        {{ $message }}
-                    </div>
-
-                @enderror
-
-            </div>
-
-
-            {{-- EAR CLEANING --}}
-
-            <div class="form-group">
-
-                <label for="Ear_Cleaning">
-                    Ear Cleaning
-                </label>
-
-                <input
-                    type="text"
-                    id="Ear_Cleaning"
-                    name="Ear_Cleaning"
-                    value="{{ old('Ear_Cleaning', $report->Ear_Cleaning) }}"
-                    placeholder="Example: Completed"
-                >
-
-                @error('Ear_Cleaning')
-
-                    <div class="error">
-                        {{ $message }}
-                    </div>
-
-                @enderror
-
-            </div>
-
-
-            {{-- NAIL TRIMMING --}}
-
-            <div class="form-group">
-
-                <label for="Nail_Trimming">
-                    Nail Trimming
-                </label>
-
-                <input
-                    type="text"
-                    id="Nail_Trimming"
-                    name="Nail_Trimming"
-                    value="{{ old('Nail_Trimming', $report->Nail_Trimming) }}"
-                    placeholder="Example: Completed"
-                >
-
-                @error('Nail_Trimming')
-
-                    <div class="error">
-                        {{ $message }}
-                    </div>
-
-                @enderror
-
-            </div>
-
-
-            {{-- RECOMMENDATION --}}
-
-            <div class="form-group">
-
-                <label for="Recommendation">
-                    Recommendation
-                </label>
-
-                <textarea
-                    id="Recommendation"
-                    name="Recommendation"
-                    placeholder="Enter recommendations for the pet owner..."
-                >{{ old('Recommendation', $report->Recommendation) }}</textarea>
-
-                @error('Recommendation')
-
-                    <div class="error">
-                        {{ $message }}
-                    </div>
-
-                @enderror
-
-            </div>
-
-
-            {{-- GROOMER NOTES --}}
-
-            <div class="form-group">
-
-                <label for="Groomer_Notes">
-                    Grooming Notes
-                </label>
-
-                <textarea
-                    id="Groomer_Notes"
-                    name="Groomer_Notes"
-                    placeholder="Enter additional grooming notes..."
-                >{{ old('Groomer_Notes', $report->Groomer_Notes) }}</textarea>
-
-                @error('Groomer_Notes')
-
-                    <div class="error">
-                        {{ $message }}
-                    </div>
-
-                @enderror
-
-            </div>
-
-
-            {{-- BUTTONS --}}
-
-            <div class="buttons">
-
-                <button
-                    type="submit"
-                    class="button save-button"
-                >
-                    Update Grooming Report
-                </button>
-
-                <a
-                    href="{{ route('grooming-reports.index') }}"
-                    class="button back-button"
-                >
-                    Cancel
-                </a>
-
-            </div>
-
-        </form>
+        @endif
 
     </div>
 

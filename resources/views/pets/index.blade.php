@@ -1,0 +1,733 @@
+@extends('layouts.app')
+
+@section('title', 'Payment Details')
+
+@section('content')
+
+<style>
+
+    .payment-page {
+        min-height: calc(100vh - 70px);
+
+        background: linear-gradient(
+            135deg,
+            #e8f4ff,
+            #f7fbff,
+            #dff3f0
+        );
+
+        padding: 50px 20px;
+    }
+
+
+    .payment-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+
+    .payment-card {
+        background: white;
+
+        border-radius: 18px;
+
+        padding: 35px;
+
+        box-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.10);
+    }
+
+
+    .payment-title {
+        color: #285b94;
+
+        font-size: 30px;
+
+        margin-bottom: 25px;
+    }
+
+
+    /* =========================
+       ALERTS
+    ========================= */
+
+    .alert {
+        padding: 14px 18px;
+
+        border-radius: 8px;
+
+        margin-bottom: 20px;
+    }
+
+
+    .alert-success {
+        background: #e8f8ee;
+
+        color: #218838;
+
+        border: 1px solid #b8e6c8;
+    }
+
+
+    .alert-error {
+        background: #fdecec;
+
+        color: #c62828;
+
+        border: 1px solid #f5b5b5;
+    }
+
+
+    /* =========================
+       INFORMATION BOX
+    ========================= */
+
+    .info-box {
+        background: #f5f9fd;
+
+        border-radius: 12px;
+
+        padding: 20px;
+
+        margin-bottom: 25px;
+    }
+
+
+    .info-row {
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        gap: 20px;
+
+        padding: 12px 0;
+
+        border-bottom: 1px solid #e5e5e5;
+    }
+
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+
+    .label {
+        color: #666;
+
+        font-weight: 600;
+    }
+
+
+    .value {
+        color: #333;
+
+        font-weight: bold;
+
+        text-align: right;
+    }
+
+
+    /* =========================
+       PAYMENT STATUS
+    ========================= */
+
+    .status {
+        display: inline-block;
+
+        padding: 6px 14px;
+
+        border-radius: 20px;
+
+        font-size: 14px;
+
+        font-weight: bold;
+    }
+
+
+    .status-pending {
+        background: #fff3cd;
+
+        color: #856404;
+    }
+
+
+    .status-paid {
+        background: #d4edda;
+
+        color: #155724;
+    }
+
+
+    .status-failed {
+        background: #f8d7da;
+
+        color: #721c24;
+    }
+
+
+    /* =========================
+       AMOUNT
+    ========================= */
+
+    .amount-box {
+        background: #f0f6fc;
+
+        border-radius: 12px;
+
+        padding: 25px;
+
+        margin-bottom: 25px;
+
+        text-align: center;
+    }
+
+
+    .amount-label {
+        color: #666;
+
+        font-size: 16px;
+
+        margin-bottom: 8px;
+    }
+
+
+    .amount {
+        color: #285b94;
+
+        font-size: 32px;
+
+        font-weight: bold;
+    }
+
+
+    /* =========================
+       BUTTONS
+    ========================= */
+
+    .button-row {
+        display: flex;
+
+        gap: 12px;
+
+        margin-top: 25px;
+    }
+
+
+    .button {
+        flex: 1;
+
+        text-align: center;
+
+        text-decoration: none;
+
+        padding: 13px;
+
+        border-radius: 9px;
+
+        font-weight: bold;
+
+        transition: 0.3s;
+    }
+
+
+    .back-button {
+        background: #6c757d;
+
+        color: white;
+    }
+
+
+    .back-button:hover {
+        background: #545b62;
+    }
+
+
+    .appointment-button {
+        background: #3478c9;
+
+        color: white;
+    }
+
+
+    .appointment-button:hover {
+        background: #285b94;
+    }
+
+
+    /* =========================
+       NOTE
+    ========================= */
+
+    .note {
+        margin-top: 25px;
+
+        text-align: center;
+
+        color: #777;
+
+        font-size: 14px;
+
+        line-height: 1.6;
+    }
+
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media (max-width: 600px) {
+
+        .payment-page {
+            padding: 30px 15px;
+        }
+
+
+        .payment-card {
+            padding: 22px;
+        }
+
+
+        .payment-title {
+            font-size: 25px;
+        }
+
+
+        .info-row {
+            flex-direction: column;
+
+            align-items: flex-start;
+
+            gap: 5px;
+        }
+
+
+        .value {
+            text-align: left;
+        }
+
+
+        .button-row {
+            flex-direction: column;
+        }
+
+    }
+
+</style>
+
+<div class="payment-page">
+
+```
+<div class="payment-container">
+
+    <div class="payment-card">
+
+
+        <!-- =========================
+             TITLE
+        ========================== -->
+
+        <h1 class="payment-title">
+            Payment Details
+        </h1>
+
+
+        <!-- =========================
+             SUCCESS MESSAGE
+        ========================== -->
+
+        @if(session('success'))
+
+            <div class="alert alert-success">
+
+                {{ session('success') }}
+
+            </div>
+
+        @endif
+
+
+        <!-- =========================
+             ERROR MESSAGE
+        ========================== -->
+
+        @if(session('error'))
+
+            <div class="alert alert-error">
+
+                {{ session('error') }}
+
+            </div>
+
+        @endif
+
+
+        <!-- =========================
+             VALIDATION ERRORS
+        ========================== -->
+
+        @if($errors->any())
+
+            <div class="alert alert-error">
+
+                @foreach($errors->all() as $error)
+
+                    <div>
+                        {{ $error }}
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        @endif
+
+
+        <!-- =========================================
+             APPOINTMENT INFORMATION
+        ========================================== -->
+
+        <div class="info-box">
+
+
+            <!-- APPOINTMENT ID -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Appointment ID
+                </span>
+
+                <span class="value">
+
+                    #{{ $appointment->Appointment_ID }}
+
+                </span>
+
+            </div>
+
+
+            <!-- PET -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Pet
+                </span>
+
+                <span class="value">
+
+                    {{ $appointment->Pet_Name ?? 'N/A' }}
+
+                </span>
+
+            </div>
+
+
+            <!-- GROOMER -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Groomer
+                </span>
+
+                <span class="value">
+
+                    {{ $appointment->Groomer_Name ?? 'Not Assigned' }}
+
+                </span>
+
+            </div>
+
+
+            <!-- DATE -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Appointment Date
+                </span>
+
+                <span class="value">
+
+                    @if(!empty($appointment->Appointment_Date))
+
+                        {{ \Carbon\Carbon::parse(
+                            $appointment->Appointment_Date
+                        )->format('d M Y') }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </span>
+
+            </div>
+
+
+            <!-- TIME -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Appointment Time
+                </span>
+
+                <span class="value">
+
+                    @if(!empty($appointment->Appointment_Time))
+
+                        {{ \Carbon\Carbon::parse(
+                            $appointment->Appointment_Time
+                        )->format('h:i A') }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- =========================================
+             PAYMENT INFORMATION
+        ========================================== -->
+
+        <div class="info-box">
+
+
+            <!-- PAYMENT METHOD -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Payment Method
+                </span>
+
+                <span class="value">
+
+                    {{ $payment->Payment_Method ?? 'N/A' }}
+
+                </span>
+
+            </div>
+
+
+            <!-- PAYMENT STATUS -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Payment Status
+                </span>
+
+
+                <span class="value">
+
+                    @php
+
+                        $status = strtoupper(
+                            trim(
+                                $payment->Payment_Status ?? ''
+                            )
+                        );
+
+                    @endphp
+
+
+                    @if($status === 'PAID')
+
+                        <span class="status status-paid">
+
+                            PAID
+
+                        </span>
+
+
+                    @elseif($status === 'FAILED')
+
+                        <span class="status status-failed">
+
+                            FAILED
+
+                        </span>
+
+
+                    @else
+
+                        <span class="status status-pending">
+
+                            PENDING
+
+                        </span>
+
+                    @endif
+
+                </span>
+
+            </div>
+
+
+            <!-- PAYMENT DATE -->
+
+            <div class="info-row">
+
+                <span class="label">
+                    Payment Date
+                </span>
+
+                <span class="value">
+
+                    @if(!empty($payment->Payment_Date))
+
+                        {{ \Carbon\Carbon::parse(
+                            $payment->Payment_Date
+                        )->format('d M Y, h:i A') }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- =========================================
+             TOTAL AMOUNT
+        ========================================== -->
+
+        <div class="amount-box">
+
+            <div class="amount-label">
+
+                Total Amount
+
+            </div>
+
+
+            <div class="amount">
+
+                ৳ {{ number_format(
+                    (float) (
+                        $payment->Total_Amount ?? 0
+                    ),
+                    2
+                ) }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             BUTTONS
+        ========================================== -->
+
+        <div class="button-row">
+
+
+            <!-- BACK -->
+
+            <a
+                href="{{ route('appointments.index') }}"
+                class="button back-button"
+            >
+
+                ← My Appointments
+
+            </a>
+
+
+            <!-- APPOINTMENT -->
+
+            <a
+                href="{{ route(
+                    'appointments.show',
+                    $appointment->Appointment_ID
+                ) }}"
+                class="button appointment-button"
+            >
+
+                View Appointment
+
+            </a>
+
+
+        </div>
+
+
+        <!-- =========================================
+             PAYMENT NOTE
+        ========================================== -->
+
+        @if($status === 'PENDING')
+
+            <p class="note">
+
+                Your cash payment is currently
+                <strong>PENDING</strong>.
+
+                <br>
+
+                Please pay the staff when you visit.
+
+                <br>
+
+                The payment status will be updated
+                after the staff receives the payment.
+
+            </p>
+
+
+        @elseif($status === 'PAID')
+
+            <p class="note">
+
+                Your payment has been successfully received.
+
+                <br>
+
+                Thank you!
+
+            </p>
+
+
+        @elseif($status === 'FAILED')
+
+            <p class="note">
+
+                Your payment could not be completed.
+
+                <br>
+
+                Please contact the staff for assistance.
+
+            </p>
+
+        @endif
+
+
+    </div>
+
+</div>
+```
+
+</div>
+
+@endsection

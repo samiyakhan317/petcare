@@ -8,6 +8,7 @@
 
     .report-page {
         min-height: calc(100vh - 70px);
+
         background:
             linear-gradient(
                 135deg,
@@ -15,6 +16,7 @@
                 #f7fbff,
                 #dff3f0
             );
+
         padding: 50px 20px;
     }
 
@@ -27,7 +29,9 @@
         background: white;
         border-radius: 18px;
         padding: 35px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+
+        box-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.10);
     }
 
     .report-header {
@@ -90,6 +94,8 @@
         color: #555;
         min-height: 45px;
         line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
     }
 
     .back-button {
@@ -121,209 +127,316 @@
 
 </style>
 
-
 <div class="report-page">
 
-    <div class="report-container">
+```
+<div class="report-container">
 
-        <div class="report-card">
+    <div class="report-card">
 
-            <!-- HEADER -->
 
-            <div class="report-header">
+        <!-- =====================================================
+             HEADER
+        ====================================================== -->
 
-                <h1>
-                    🐾 Grooming Report
-                </h1>
+        <div class="report-header">
 
-                <p>
-                    Grooming details for your pet
-                </p>
+            <h1>
+                🐾 Grooming Report
+            </h1>
 
-            </div>
-
-
-            <!-- APPOINTMENT INFORMATION -->
-
-            <div class="appointment-info">
-
-                <h2>
-                    Appointment Information
-                </h2>
-
-                <div class="info-grid">
-
-                    <div class="info-item">
-                        <strong>Appointment ID:</strong>
-                        #{{ $appointment->Appointment_ID }}
-                    </div>
-
-                    <div class="info-item">
-                        <strong>Pet:</strong>
-
-                        @if($appointment->pet)
-                            {{ $appointment->pet->Name }}
-                        @else
-                            N/A
-                        @endif
-                    </div>
-
-                    <div class="info-item">
-                        <strong>Date:</strong>
-
-                        {{ \Carbon\Carbon::parse(
-                            $appointment->Appointment_Date
-                        )->format('d M Y') }}
-                    </div>
-
-                    <div class="info-item">
-                        <strong>Time:</strong>
-
-                        {{ \Carbon\Carbon::parse(
-                            $appointment->Appointment_Time
-                        )->format('h:i A') }}
-                    </div>
-
-                    <div class="info-item">
-                        <strong>Groomer:</strong>
-
-                        @if($appointment->groomer)
-                            {{ $appointment->groomer->Name }}
-                        @else
-                            N/A
-                        @endif
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- COAT CONDITION -->
-
-            <div class="report-section">
-
-                <h3>
-                    Coat Condition
-                </h3>
-
-                <div class="report-value">
-                    {{ $report->Coat_Condition ?? 'Not provided' }}
-                </div>
-
-            </div>
-
-
-            <!-- SKIN CONDITION -->
-
-            <div class="report-section">
-
-                <h3>
-                    Skin Condition
-                </h3>
-
-                <div class="report-value">
-                    {{ $report->Skin_Condition ?? 'Not provided' }}
-                </div>
-
-            </div>
-
-
-            <!-- EAR CLEANING -->
-
-            <div class="report-section">
-
-                <h3>
-                    Ear Cleaning
-                </h3>
-
-                <div class="report-value">
-                    {{ $report->Ear_Cleaning ?? 'Not provided' }}
-                </div>
-
-            </div>
-
-
-            <!-- NAIL TRIMMING -->
-
-            <div class="report-section">
-
-                <h3>
-                    Nail Trimming
-                </h3>
-
-                <div class="report-value">
-                    {{ $report->Nail_Trimming ?? 'Not provided' }}
-                </div>
-
-            </div>
-
-
-            <!-- RECOMMENDATION -->
-
-            <div class="report-section">
-
-                <h3>
-                    Recommendation
-                </h3>
-
-                <div class="report-value">
-                    {{ $report->Recommendation ?? 'No recommendation provided' }}
-                </div>
-
-            </div>
-
-
-            <!-- GROOMER NOTES -->
-
-            <div class="report-section">
-
-                <h3>
-                    Groomer Notes
-                </h3>
-
-                <div class="report-value">
-                    {{ $report->Groomer_Notes ?? 'No notes provided' }}
-                </div>
-
-            </div>
-
-
-            <!-- CREATED DATE -->
-
-            @if($report->Created_At)
-
-                <div class="report-section">
-
-                    <h3>
-                        Report Date
-                    </h3>
-
-                    <div class="report-value">
-
-                        {{ \Carbon\Carbon::parse(
-                            $report->Created_At
-                        )->format('d M Y, h:i A') }}
-
-                    </div>
-
-                </div>
-
-            @endif
-
-
-            <!-- BACK BUTTON -->
-
-            <a
-                href="{{ route('grooming-reports.index') }}"
-                class="back-button"
-            >
-                ← Back to Grooming Reports
-            </a>
+            <p>
+                Grooming details for your pet
+            </p>
 
         </div>
 
+
+        <!-- =====================================================
+             APPOINTMENT INFORMATION
+        ====================================================== -->
+
+        <div class="appointment-info">
+
+            <h2>
+                Appointment Information
+            </h2>
+
+            <div class="info-grid">
+
+
+                <!-- APPOINTMENT ID -->
+
+                <div class="info-item">
+
+                    <strong>
+                        Appointment ID:
+                    </strong>
+
+                    #{{ $appointment->Appointment_ID }}
+
+                </div>
+
+
+                <!-- PET -->
+
+                <div class="info-item">
+
+                    <strong>
+                        Pet:
+                    </strong>
+
+                    @if(!empty($appointment->Pet_Name))
+
+                        {{ $appointment->Pet_Name }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </div>
+
+
+                <!-- DATE -->
+
+                <div class="info-item">
+
+                    <strong>
+                        Date:
+                    </strong>
+
+                    @if(!empty($appointment->Appointment_Date))
+
+                        {{ date(
+                            'd M Y',
+                            strtotime(
+                                $appointment->Appointment_Date
+                            )
+                        ) }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </div>
+
+
+                <!-- TIME -->
+
+                <div class="info-item">
+
+                    <strong>
+                        Time:
+                    </strong>
+
+                    @if(!empty($appointment->Appointment_Time))
+
+                        {{ date(
+                            'h:i A',
+                            strtotime(
+                                $appointment->Appointment_Time
+                            )
+                        ) }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </div>
+
+
+                <!-- GROOMER -->
+
+                <div class="info-item">
+
+                    <strong>
+                        Groomer:
+                    </strong>
+
+                    @if(!empty($appointment->Groomer_Name))
+
+                        {{ $appointment->Groomer_Name }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             COAT CONDITION
+        ====================================================== -->
+
+        <div class="report-section">
+
+            <h3>
+                Coat Condition
+            </h3>
+
+            <div class="report-value">
+
+                {{ $report->Coat_Condition ?? 'Not provided' }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SKIN CONDITION
+        ====================================================== -->
+
+        <div class="report-section">
+
+            <h3>
+                Skin Condition
+            </h3>
+
+            <div class="report-value">
+
+                {{ $report->Skin_Condition ?? 'Not provided' }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             EAR CLEANING
+        ====================================================== -->
+
+        <div class="report-section">
+
+            <h3>
+                Ear Cleaning
+            </h3>
+
+            <div class="report-value">
+
+                {{ $report->Ear_Cleaning ?? 'Not provided' }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             NAIL TRIMMING
+        ====================================================== -->
+
+        <div class="report-section">
+
+            <h3>
+                Nail Trimming
+            </h3>
+
+            <div class="report-value">
+
+                {{ $report->Nail_Trimming ?? 'Not provided' }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             RECOMMENDATION
+        ====================================================== -->
+
+        <div class="report-section">
+
+            <h3>
+                Recommendation
+            </h3>
+
+            <div class="report-value">
+
+                {{ $report->Recommendation ?? 'No recommendation provided' }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             GROOMER NOTES
+        ====================================================== -->
+
+        <div class="report-section">
+
+            <h3>
+                Groomer Notes
+            </h3>
+
+            <div class="report-value">
+
+                {{ $report->Groomer_Notes ?? 'No notes provided' }}
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             CREATED DATE
+        ====================================================== -->
+
+        @if(!empty($report->Created_At))
+
+            <div class="report-section">
+
+                <h3>
+                    Report Date
+                </h3>
+
+                <div class="report-value">
+
+                    {{ date(
+                        'd M Y, h:i A',
+                        strtotime(
+                            $report->Created_At
+                        )
+                    ) }}
+
+                </div>
+
+            </div>
+
+        @endif
+
+
+        <!-- =====================================================
+             BACK BUTTON
+        ====================================================== -->
+
+        <a
+            href="{{ route('grooming-reports.index') }}"
+            class="back-button"
+        >
+
+            ← Back to Grooming Reports
+
+        </a>
+
+
     </div>
+
+</div>
+```
 
 </div>
 

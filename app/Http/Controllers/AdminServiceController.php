@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,15 +15,35 @@ class AdminServiceController extends Controller
 
     private function checkAdmin(Request $request)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
-            return redirect()->route('login');
+
+            return redirect()
+                ->route('login');
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Admin Role
+        |--------------------------------------------------------------------------
+        */
+
         if (
-            strtoupper($request->session()->get('role')) !== 'ADMIN'
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'ADMIN'
         ) {
-            return redirect()->route('home');
+
+            return redirect()
+                ->route('home');
         }
+
 
         return null;
     }
@@ -38,16 +57,50 @@ class AdminServiceController extends Controller
 
     public function index(Request $request)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Access Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkAdmin($request);
 
         if ($check) {
             return $check;
         }
 
-        $services = Service::orderBy(
-            'Service_ID',
-            'desc'
-        )->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get All Services
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        | NO Eloquent ORM.
+        |
+        */
+
+        $services = DB::table('Service')
+            ->select(
+                'Service_ID',
+                'Service_Name',
+                'Duration',
+                'Price',
+                'Description',
+                'Status'
+            )
+            ->orderBy(
+                'Service_ID',
+                'desc'
+            )
+            ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'admin.services.index',
@@ -64,11 +117,24 @@ class AdminServiceController extends Controller
 
     public function create(Request $request)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Access Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkAdmin($request);
 
         if ($check) {
             return $check;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Create View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'admin.services.create'
@@ -84,6 +150,12 @@ class AdminServiceController extends Controller
 
     public function store(Request $request)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Access Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkAdmin($request);
 
         if ($check) {
@@ -99,48 +171,63 @@ class AdminServiceController extends Controller
 
         $request->validate([
 
-            'Service_Name' =>
-                'required|string|max:255',
+            'Service_Name' => [
+                'required',
+                'string',
+                'max:255'
+            ],
 
-            'Duration' =>
-                'required|integer|min:1',
+            'Duration' => [
+                'required',
+                'integer',
+                'min:1'
+            ],
 
-            'Price' =>
-                'required|numeric|min:0',
+            'Price' => [
+                'required',
+                'numeric',
+                'min:0'
+            ],
 
-            'Description' =>
-                'nullable|string',
+            'Description' => [
+                'nullable',
+                'string'
+            ],
 
         ]);
 
 
         /*
         |--------------------------------------------------------------------------
-        | Create Service
+        | Insert Service
         |--------------------------------------------------------------------------
         |
-        | New services are automatically Active.
+        | Query Builder only.
+        | NO Service model.
         |
         */
 
-        Service::create([
+        DB::table('Service')
+            ->insert([
 
-            'Service_Name' =>
-                $request->Service_Name,
+                'Service_Name' =>
+                    trim(
+                        $request->Service_Name
+                    ),
 
-            'Duration' =>
-                $request->Duration,
+                'Duration' =>
+                    $request->Duration,
 
-            'Price' =>
-                $request->Price,
+                'Price' =>
+                    $request->Price,
 
-            'Description' =>
-                $request->Description,
+                'Description' =>
+                    $request->Description,
 
-            'Status' =>
-                'Active',
+                'Status' =>
+                    'Active',
 
-        ]);
+            ]);
 
 
         /*
@@ -166,29 +253,91 @@ class AdminServiceController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function destroy(Request $request, $id)
-    {
+    public function destroy(
+        Request $request,
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Access Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkAdmin($request);
 
         if ($check) {
             return $check;
         }
 
-        $service = Service::findOrFail($id);
 
         /*
         |--------------------------------------------------------------------------
-        | Check if Service is Used in an Appointment
+        | Check Service Exists
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        | NO Eloquent ORM.
+        |
+        */
+
+        $service = DB::table('Service')
+            ->where(
+                'Service_ID',
+                $id
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Service Not Found
         |--------------------------------------------------------------------------
         */
 
-        $used = DB::table('appointment_service')
-            ->where('Service_ID', $id)
+        if (!$service) {
+
+            return redirect()
+                ->route(
+                    'admin.services.index'
+                )
+                ->with(
+                    'error',
+                    'Service not found.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Whether Service Is Used
+        |--------------------------------------------------------------------------
+        |
+        | appointment_service contains the relationship
+        | between Appointment and Service.
+        |
+        */
+
+        $used = DB::table('Appointment_Service')
+            ->where(
+                'Service_ID',
+                $id
+            )
             ->exists();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cannot Delete Used Service
+        |--------------------------------------------------------------------------
+        */
+
         if ($used) {
+
             return redirect()
-                ->route('admin.services.index')
+                ->route(
+                    'admin.services.index'
+                )
                 ->with(
                     'error',
                     'This service cannot be deleted because it is already used in an appointment.'
@@ -200,12 +349,30 @@ class AdminServiceController extends Controller
         |--------------------------------------------------------------------------
         | Delete Service
         |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        | NO Eloquent ORM.
+        |
         */
 
-        $service->delete();
+        DB::table('Service')
+            ->where(
+                'Service_ID',
+                $id
+            )
+            ->delete();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Success
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()
-            ->route('admin.services.index')
+            ->route(
+                'admin.services.index'
+            )
             ->with(
                 'success',
                 'Grooming service deleted successfully.'

@@ -20,91 +20,168 @@
         padding: 50px 40px;
     }
 
+
     .services-container {
         max-width: 1000px;
+
         margin: 0 auto;
     }
+
+
+    /* =========================
+       HEADER
+    ========================= */
 
     .services-header {
         margin-bottom: 30px;
     }
 
+
     .services-header h1 {
         color: #285b94;
+
         font-size: 30px;
+
         margin-bottom: 8px;
     }
 
+
     .services-header p {
         color: #666;
+
+        font-size: 16px;
     }
+
+
+    /* =========================
+       SERVICES GRID
+    ========================= */
 
     .services-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+
+        grid-template-columns:
+            repeat(2, 1fr);
+
         gap: 25px;
     }
 
+
+    /* =========================
+       SERVICE CARD
+    ========================= */
+
     .service-card {
         background: white;
+
         padding: 25px;
+
         border-radius: 15px;
 
         box-shadow:
-            0 10px 30px rgba(0, 0, 0, 0.10);
+            0 10px 30px
+            rgba(0, 0, 0, 0.10);
 
         transition:
             transform 0.2s,
             box-shadow 0.2s;
     }
 
+
     .service-card:hover {
-        transform: translateY(-4px);
+
+        transform:
+            translateY(-4px);
 
         box-shadow:
-            0 15px 35px rgba(0, 0, 0, 0.13);
+            0 15px 35px
+            rgba(0, 0, 0, 0.13);
     }
+
 
     .service-card h2 {
+
         color: #285b94;
+
         font-size: 22px;
+
         margin-bottom: 15px;
     }
+
+
+    /* =========================
+       SERVICE INFORMATION
+    ========================= */
 
     .service-info {
+
         display: flex;
-        justify-content: space-between;
+
+        justify-content:
+            space-between;
+
         gap: 15px;
+
         margin-bottom: 15px;
     }
 
+
     .info-box {
+
         background: #f0f6fc;
+
         padding: 10px 14px;
+
         border-radius: 8px;
+
         flex: 1;
     }
 
+
     .info-label {
+
         display: block;
+
         color: #777;
+
         font-size: 13px;
+
         margin-bottom: 4px;
     }
 
+
     .info-value {
+
         color: #285b94;
+
         font-weight: bold;
+
         font-size: 16px;
     }
 
+
+    /* =========================
+       DESCRIPTION
+    ========================= */
+
     .description {
+
         color: #666;
+
         line-height: 1.6;
+
         margin-bottom: 20px;
+
+        min-height: 50px;
     }
 
+
+    /* =========================
+       BOOK BUTTON
+    ========================= */
+
     .book-button {
+
         display: inline-block;
 
         padding: 11px 20px;
@@ -117,43 +194,85 @@
             );
 
         color: white;
+
         text-decoration: none;
+
         border-radius: 8px;
+
         font-weight: bold;
+
+        transition: 0.2s;
     }
+
 
     .book-button:hover {
+
         background: #285b94;
+
+        color: white;
     }
 
+
+    /* =========================
+       EMPTY MESSAGE
+    ========================= */
+
     .empty-message {
+
         background: white;
+
         padding: 40px 20px;
+
         border-radius: 15px;
+
         text-align: center;
+
         color: #777;
 
         box-shadow:
-            0 10px 30px rgba(0, 0, 0, 0.10);
+            0 10px 30px
+            rgba(0, 0, 0, 0.10);
     }
 
+
     .empty-message h2 {
+
         color: #285b94;
+
         margin-bottom: 10px;
     }
+
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
 
     @media (max-width: 700px) {
 
         .services-page {
-            padding: 35px 20px;
+
+            padding:
+                35px 20px;
         }
+
 
         .services-grid {
-            grid-template-columns: 1fr;
+
+            grid-template-columns:
+                1fr;
         }
 
+
         .service-info {
-            flex-direction: column;
+
+            flex-direction:
+                column;
+        }
+
+
+        .service-card {
+
+            padding: 22px;
         }
 
     }
@@ -164,6 +283,7 @@
 
 ```
 <div class="services-container">
+
 
     {{-- =========================
          HEADER
@@ -186,16 +306,24 @@
          SERVICES
     ========================== --}}
 
-    @if($services->count() > 0)
+    @if(!empty($services) && count($services) > 0)
 
         <div class="services-grid">
+
 
             @foreach($services as $service)
 
                 <div class="service-card">
 
+
+                    {{-- =========================
+                         SERVICE NAME
+                    ========================== --}}
+
                     <h2>
+
                         {{ $service->Service_Name }}
+
                     </h2>
 
 
@@ -205,11 +333,17 @@
 
                     <div class="service-info">
 
+
+                        {{-- DURATION --}}
+
                         <div class="info-box">
 
                             <span class="info-label">
+
                                 Duration
+
                             </span>
+
 
                             <span class="info-value">
 
@@ -222,22 +356,28 @@
                         </div>
 
 
+                        {{-- PRICE --}}
+
                         <div class="info-box">
 
                             <span class="info-label">
+
                                 Price
+
                             </span>
+
 
                             <span class="info-value">
 
                                 ৳{{ number_format(
-                                    $service->Price,
+                                    (float) $service->Price,
                                     2
                                 ) }}
 
                             </span>
 
                         </div>
+
 
                     </div>
 
@@ -248,19 +388,32 @@
 
                     <div class="description">
 
-                        {{ $service->Description ?: 'No description available.' }}
+                        @if(
+                            !empty($service->Description)
+                        )
+
+                            {{ $service->Description }}
+
+                        @else
+
+                            No description available.
+
+                        @endif
 
                     </div>
 
 
                     {{-- =========================
-                         BOOK THIS SERVICE
+                         BOOK SERVICE
                     ========================== --}}
 
                     <a
                         href="{{ route(
                             'appointments.create',
-                            ['service_id' => $service->Service_ID]
+                            [
+                                'service_id'
+                                => $service->Service_ID
+                            ]
                         ) }}"
                         class="book-button"
                     >
@@ -269,27 +422,43 @@
 
                     </a>
 
+
                 </div>
 
             @endforeach
 
+
         </div>
 
+
     @else
+
+
+        {{-- =========================
+             NO SERVICES
+        ========================== --}}
 
         <div class="empty-message">
 
             <h2>
+
                 No Services Available
+
             </h2>
 
+
             <p>
-                There are currently no active grooming services.
+
+                There are currently no active
+                grooming services.
+
             </p>
 
         </div>
 
+
     @endif
+
 
 </div>
 ```

@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
-use App\Models\Groomer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
@@ -23,7 +22,9 @@ class HomeController extends Controller
         */
 
         if (!$request->session()->has('user_id')) {
-            return redirect()->route('login');
+
+            return redirect()
+                ->route('login');
         }
 
 
@@ -33,10 +34,11 @@ class HomeController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $userId = $request->session()->get('user_id');
+        $userId =
+            $request->session()->get('user_id');
 
         $role = strtoupper(
-            $request->session()->get('role')
+            $request->session()->get('role', '')
         );
 
 
@@ -45,8 +47,8 @@ class HomeController extends Controller
         | ADMIN
         |--------------------------------------------------------------------------
         |
-        | Admin should not use customer/groomer home.
-        | Send admin directly to dashboard.
+        | Admin does not use the normal customer/groomer home page.
+        | Send admin directly to the admin dashboard.
         |
         */
 
@@ -54,7 +56,6 @@ class HomeController extends Controller
 
             return redirect()
                 ->route('admin.dashboard');
-
         }
 
 
@@ -62,6 +63,10 @@ class HomeController extends Controller
         |--------------------------------------------------------------------------
         | Default Display Name
         |--------------------------------------------------------------------------
+        |
+        | If customer/groomer information cannot be found,
+        | use the email stored in the session.
+        |
         */
 
         $display_name =
@@ -70,17 +75,35 @@ class HomeController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | CUSTOMER DISPLAY NAME
+        | CUSTOMER
         |--------------------------------------------------------------------------
         */
 
         if ($role === 'CUSTOMER') {
 
-            $customer = Customer::where(
-                'ID',
-                $userId
-            )->first();
+            /*
+            |--------------------------------------------------------------------------
+            | Get Customer Information
+            |--------------------------------------------------------------------------
+            |
+            | Query Builder only.
+            | NO Eloquent ORM.
+            |
+            */
 
+            $customer = DB::table('Customer')
+                ->where(
+                    'ID',
+                    $userId
+                )
+                ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Set Customer Name
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $customer &&
@@ -89,25 +112,41 @@ class HomeController extends Controller
 
                 $display_name =
                     $customer->First_name;
-
             }
-
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | GROOMER DISPLAY NAME
+        | GROOMER
         |--------------------------------------------------------------------------
         */
 
         elseif ($role === 'GROOMER') {
 
-            $groomer = Groomer::where(
-                'ID',
-                $userId
-            )->first();
+            /*
+            |--------------------------------------------------------------------------
+            | Get Groomer Information
+            |--------------------------------------------------------------------------
+            |
+            | Query Builder only.
+            | NO Eloquent ORM.
+            |
+            */
 
+            $groomer = DB::table('Groomer')
+                ->where(
+                    'ID',
+                    $userId
+                )
+                ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Set Groomer Name
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $groomer &&
@@ -116,9 +155,7 @@ class HomeController extends Controller
 
                 $display_name =
                     $groomer->Name;
-
             }
-
         }
 
 
@@ -130,14 +167,14 @@ class HomeController extends Controller
 
         else {
 
-            return redirect()->route('login');
-
+            return redirect()
+                ->route('login');
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Show Home
+        | Show Home Page
         |--------------------------------------------------------------------------
         */
 

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
@@ -15,31 +15,66 @@ class ServiceController extends Controller
 
     public function index(Request $request)
     {
-        // Check customer login
+        /*
+        |--------------------------------------------------------------------------
+        | Check Customer Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Only CUSTOMER can access
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only CUSTOMER Can Access
+        |--------------------------------------------------------------------------
+        */
+
         if (
-            strtoupper($request->session()->get('role')) !== 'CUSTOMER'
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
         ) {
             return redirect()->route('home');
         }
+
 
         /*
         |--------------------------------------------------------------------------
         | Get Active Services
         |--------------------------------------------------------------------------
         |
-        | Duration is included automatically because we retrieve
-        | the complete Service records.
+        | Query Builder is used instead of Eloquent ORM.
+        |
+        | This retrieves:
+        |
+        | - Service_ID
+        | - Service_Name
+        | - Price
+        | - Duration
+        | - Description
+        | - Status
         |
         */
 
-        $services = Service::where('Status', 'Active')
-            ->orderBy('Service_Name')
+        $services = DB::table('service')
+            ->where(
+                'Status',
+                'ACTIVE'
+            )
+            ->orderBy(
+                'Service_Name'
+            )
             ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Services View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'services.index',

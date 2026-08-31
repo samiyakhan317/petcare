@@ -65,6 +65,7 @@
         justify-content: space-between;
         padding: 12px 0;
         border-bottom: 1px solid #e5e5e5;
+        gap: 20px;
     }
 
     .info-row:last-child {
@@ -79,6 +80,7 @@
     .value {
         color: #333;
         font-weight: bold;
+        text-align: right;
     }
 
     .status {
@@ -178,6 +180,11 @@
 
         .info-row {
             gap: 15px;
+            flex-direction: column;
+        }
+
+        .value {
+            text-align: left;
         }
 
         .button-row {
@@ -187,269 +194,292 @@
 
 </style>
 
-
 <div class="payment-page">
 
-    <div class="payment-container">
+```
+<div class="payment-container">
 
-        <div class="payment-card">
+    <div class="payment-card">
 
-            <h1 class="payment-title">
-                Payment Details
-            </h1>
-
-
-            {{-- Success Message --}}
-
-            @if(session('success'))
-
-                <div class="alert alert-success">
-                    {{ session('success') }}
-                </div>
-
-            @endif
+        <h1 class="payment-title">
+            Payment Details
+        </h1>
 
 
-            {{-- Error Message --}}
+        {{-- Success Message --}}
 
-            @if(session('error'))
+        @if(session('success'))
 
-                <div class="alert alert-error">
-                    {{ session('error') }}
-                </div>
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
 
-            @endif
-
-
-            {{-- Appointment Information --}}
-
-            <div class="info-box">
-
-                <div class="info-row">
-
-                    <span class="label">
-                        Appointment ID
-                    </span>
-
-                    <span class="value">
-                        #{{ $appointment->Appointment_ID }}
-                    </span>
-
-                </div>
+        @endif
 
 
-                <div class="info-row">
+        {{-- Error Message --}}
 
-                    <span class="label">
-                        Pet
-                    </span>
+        @if(session('error'))
 
-                    <span class="value">
-                        {{ $appointment->pet->Name ?? 'N/A' }}
-                    </span>
+            <div class="alert alert-error">
+                {{ session('error') }}
+            </div>
 
-                </div>
+        @endif
 
 
-                <div class="info-row">
+        {{-- =========================================
+             APPOINTMENT INFORMATION
+        ========================================== --}}
 
-                    <span class="label">
-                        Groomer
-                    </span>
+        <div class="info-box">
 
-                    <span class="value">
-                        {{ $appointment->groomer->Name ?? 'Not Assigned' }}
-                    </span>
+            <div class="info-row">
 
-                </div>
+                <span class="label">
+                    Appointment ID
+                </span>
 
-
-                <div class="info-row">
-
-                    <span class="label">
-                        Appointment Date
-                    </span>
-
-                    <span class="value">
-                        {{ $appointment->Appointment_Date }}
-                    </span>
-
-                </div>
-
-
-                <div class="info-row">
-
-                    <span class="label">
-                        Appointment Time
-                    </span>
-
-                    <span class="value">
-                        {{ $appointment->Appointment_Time }}
-                    </span>
-
-                </div>
+                <span class="value">
+                    #{{ $appointment->Appointment_ID }}
+                </span>
 
             </div>
 
 
-            {{-- Payment Information --}}
+            <div class="info-row">
 
-            <div class="info-box">
+                <span class="label">
+                    Pet
+                </span>
 
-                <div class="info-row">
-
-                    <span class="label">
-                        Payment Method
-                    </span>
-
-                    <span class="value">
-                        {{ $payment->Payment_Method }}
-                    </span>
-
-                </div>
-
-
-                <div class="info-row">
-
-                    <span class="label">
-                        Payment Status
-                    </span>
-
-                    <span class="value">
-
-                        @php
-                            $status = strtoupper(
-                                trim($payment->Payment_Status ?? '')
-                            );
-                        @endphp
-
-
-                        @if($status === 'PAID')
-
-                            <span class="status status-paid">
-                                PAID
-                            </span>
-
-                        @elseif($status === 'FAILED')
-
-                            <span class="status status-failed">
-                                FAILED
-                            </span>
-
-                        @else
-
-                            <span class="status status-pending">
-                                PENDING
-                            </span>
-
-                        @endif
-
-                    </span>
-
-                </div>
-
-
-                <div class="info-row">
-
-                    <span class="label">
-                        Payment Date
-                    </span>
-
-                    <span class="value">
-
-                        @if($payment->Payment_Date)
-
-                            {{ \Carbon\Carbon::parse($payment->Payment_Date)->format('d M Y, h:i A') }}
-
-                        @else
-
-                            N/A
-
-                        @endif
-
-                    </span>
-
-                </div>
+                <span class="value">
+                    {{ $appointment->Pet_Name ?? 'N/A' }}
+                </span>
 
             </div>
 
 
-            {{-- Total Amount --}}
+            <div class="info-row">
 
-            <div class="amount-box">
+                <span class="label">
+                    Groomer
+                </span>
 
-                <div class="amount-label">
-                    Total Amount
-                </div>
-
-                <div class="amount">
-
-                    ৳ {{ number_format(
-                        (float) $payment->Total_Amount,
-                        2
-                    ) }}
-
-                </div>
+                <span class="value">
+                    {{ $appointment->Groomer_Name ?? 'Not Assigned' }}
+                </span>
 
             </div>
 
 
-            {{-- Buttons --}}
+            <div class="info-row">
 
-            <div class="button-row">
+                <span class="label">
+                    Appointment Date
+                </span>
 
-                <a
-                    href="{{ route('appointments.index') }}"
-                    class="button back-button"
-                >
-                    ← My Appointments
-                </a>
-
-
-                <a
-                    href="{{ route(
-                        'appointments.show',
-                        $appointment->Appointment_ID
-                    ) }}"
-                    class="button appointment-button"
-                >
-                    View Appointment
-                </a>
+                <span class="value">
+                    {{ $appointment->Appointment_Date }}
+                </span>
 
             </div>
 
 
-            {{-- Note --}}
+            <div class="info-row">
 
-            @if(strtoupper($payment->Payment_Status) === 'PENDING')
+                <span class="label">
+                    Appointment Time
+                </span>
 
-                <p class="note">
+                <span class="value">
+                    {{ $appointment->Appointment_Time }}
+                </span>
 
-                    Your cash payment is currently
-                    <strong>PENDING</strong>.
-
-                    <br>
-
-                    Please pay the staff when you visit.
-                    The payment status will be updated after
-                    the staff receives the payment.
-
-                </p>
-
-            @elseif(strtoupper($payment->Payment_Status) === 'PAID')
-
-                <p class="note">
-
-                    Your payment has been successfully received.
-                    Thank you!
-
-                </p>
-
-            @endif
+            </div>
 
         </div>
 
+
+        {{-- =========================================
+             PAYMENT INFORMATION
+        ========================================== --}}
+
+        <div class="info-box">
+
+            <div class="info-row">
+
+                <span class="label">
+                    Payment Method
+                </span>
+
+                <span class="value">
+                    {{ $payment->Payment_Method ?? 'N/A' }}
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="label">
+                    Payment Status
+                </span>
+
+                <span class="value">
+
+                    @php
+
+                        $status = strtoupper(
+                            trim($payment->Payment_Status ?? '')
+                        );
+
+                    @endphp
+
+
+                    @if($status === 'PAID')
+
+                        <span class="status status-paid">
+                            PAID
+                        </span>
+
+                    @elseif($status === 'FAILED')
+
+                        <span class="status status-failed">
+                            FAILED
+                        </span>
+
+                    @else
+
+                        <span class="status status-pending">
+                            PENDING
+                        </span>
+
+                    @endif
+
+                </span>
+
+            </div>
+
+
+            <div class="info-row">
+
+                <span class="label">
+                    Payment Date
+                </span>
+
+                <span class="value">
+
+                    @if(!empty($payment->Payment_Date))
+
+                        {{ \Carbon\Carbon::parse(
+                            $payment->Payment_Date
+                        )->format('d M Y, h:i A') }}
+
+                    @else
+
+                        N/A
+
+                    @endif
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        {{-- =========================================
+             TOTAL AMOUNT
+        ========================================== --}}
+
+        <div class="amount-box">
+
+            <div class="amount-label">
+                Total Amount
+            </div>
+
+            <div class="amount">
+
+                ৳ {{ number_format(
+                    (float) ($payment->Total_Amount ?? 0),
+                    2
+                ) }}
+
+            </div>
+
+        </div>
+
+
+        {{-- =========================================
+             BUTTONS
+        ========================================== --}}
+
+        <div class="button-row">
+
+            <a
+                href="{{ route('appointments.index') }}"
+                class="button back-button"
+            >
+                ← My Appointments
+            </a>
+
+
+            <a
+                href="{{ route(
+                    'appointments.show',
+                    $appointment->Appointment_ID
+                ) }}"
+                class="button appointment-button"
+            >
+                View Appointment
+            </a>
+
+        </div>
+
+
+        {{-- =========================================
+             PAYMENT NOTE
+        ========================================== --}}
+
+        @if(
+            strtoupper(
+                trim($payment->Payment_Status ?? '')
+            ) === 'PENDING'
+        )
+
+            <p class="note">
+
+                Your cash payment is currently
+                <strong>PENDING</strong>.
+
+                <br>
+
+                Please pay the staff when you visit.
+                The payment status will be updated after
+                the staff receives the payment.
+
+            </p>
+
+        @elseif(
+            strtoupper(
+                trim($payment->Payment_Status ?? '')
+            ) === 'PAID'
+        )
+
+            <p class="note">
+
+                Your payment has been successfully received.
+                Thank you!
+
+            </p>
+
+        @endif
+
     </div>
+
+</div>
+```
 
 </div>
 

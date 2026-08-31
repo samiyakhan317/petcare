@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GroomingReport;
-use App\Models\Appointment;
-use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class GroomingReportController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Check Customer
+    |--------------------------------------------------------------------------
+    */
+
     private function checkCustomer(Request $request)
     {
         if (!$request->session()->has('user_id')) {
@@ -17,7 +20,9 @@ class GroomingReportController extends Controller
         }
 
         if (
-            strtoupper($request->session()->get('role', '')) !== 'CUSTOMER'
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
         ) {
             return redirect()->route('home');
         }
@@ -26,6 +31,12 @@ class GroomingReportController extends Controller
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Check Groomer
+    |--------------------------------------------------------------------------
+    */
+
     private function checkGroomer(Request $request)
     {
         if (!$request->session()->has('user_id')) {
@@ -33,12 +44,98 @@ class GroomingReportController extends Controller
         }
 
         if (
-            strtoupper($request->session()->get('role', '')) !== 'GROOMER'
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'GROOMER'
         ) {
             return redirect()->route('home');
         }
 
         return null;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Add Pet And Groomer Data
+    |--------------------------------------------------------------------------
+    |
+    | Query Builder only.
+    |
+    */
+
+    private function attachAppointmentData($appointment)
+    {
+        if (!$appointment) {
+            return null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Pet
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->pet = DB::table('Pet')
+            ->where(
+                'Pet_ID',
+                $appointment->Pet_ID
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Groomer
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($appointment->Groomer_ID)) {
+
+            $appointment->groomer = DB::table('Groomer')
+                ->where(
+                    'ID',
+                    $appointment->Groomer_ID
+                )
+                ->first();
+
+        } else {
+
+            $appointment->groomer = null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Services
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->services = DB::table(
+            'Appointment_Service as aps'
+        )
+        ->join(
+            'Service as s',
+            'aps.Service_ID',
+            '=',
+            's.Service_ID'
+        )
+        ->where(
+            'aps.Appointment_ID',
+            $appointment->Appointment_ID
+        )
+        ->select(
+            's.Service_ID',
+            's.Service_Name',
+            's.Price',
+            's.Duration',
+            's.Description'
+        )
+        ->get();
+
+
+        return $appointment;
     }
 
 
@@ -50,12 +147,23 @@ class GroomingReportController extends Controller
 
     public function index(Request $request)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Login Check
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        $role = strtoupper($request->session()->get('role', ''));
-        $userId = $request->session()->get('user_id');
+
+        $role = strtoupper(
+            $request->session()->get('role', '')
+        );
+
+        $userId =
+            $request->session()->get('user_id');
 
 
         /*
@@ -66,26 +174,89 @@ class GroomingReportController extends Controller
 
         if ($role === 'CUSTOMER') {
 
-            $appointments = Appointment::with('pet')
-                ->whereHas('pet', function ($query) use ($userId) {
-                    $query->where('Customer_ID', $userId);
-                })
-                ->orderBy('Appointment_Date', 'desc')
-                ->orderBy('Appointment_Time', 'desc')
+            /*
+            |--------------------------------------------------------------------------
+            | Get Customer Appointments
+            |--------------------------------------------------------------------------
+            */
+
+            $appointments = DB::table('Appointment as a')
+                ->join(
+                    'Pet as p',
+                    'a.Pet_ID',
+                    '=',
+                    'p.Pet_ID'
+                )
+                ->where(
+                    'p.Customer_ID',
+                    $userId
+                )
+                ->select(
+                    'a.*'
+                )
+                ->orderBy(
+                    'a.Appointment_Date',
+                    'desc'
+                )
+                ->orderBy(
+                    'a.Appointment_Time',
+                    'desc'
+                )
                 ->get();
 
 
-            $reports = GroomingReport::whereIn(
+            /*
+            |--------------------------------------------------------------------------
+            | Attach Pet And Groomer
+            |--------------------------------------------------------------------------
+            */
+
+            foreach ($appointments as $appointment) {
+
+                $this->attachAppointmentData(
+                    $appointment
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Get Reports
+            |--------------------------------------------------------------------------
+            */
+
+            $appointmentIds =
+                $appointments
+                    ->pluck('Appointment_ID')
+                    ->toArray();
+
+
+            if (!empty($appointmentIds)) {
+
+                $reports = DB::table(
+                    'Grooming_Report'
+                )
+                ->whereIn(
                     'Appointment_ID',
-                    $appointments->pluck('Appointment_ID')
+                    $appointmentIds
                 )
                 ->get()
-                ->keyBy('Appointment_ID');
+                ->keyBy(
+                    'Appointment_ID'
+                );
+
+            } else {
+
+                $reports = collect();
+            }
 
 
             return view(
                 'grooming-reports.index',
-                compact('appointments', 'reports')
+                compact(
+                    'appointments',
+                    'reports'
+                )
             );
         }
 
@@ -98,27 +269,91 @@ class GroomingReportController extends Controller
 
         if ($role === 'GROOMER') {
 
-            $appointments = Appointment::with('pet')
-                ->where('Groomer_ID', $userId)
-                ->orderBy('Appointment_Date', 'desc')
-                ->orderBy('Appointment_Time', 'desc')
-                ->get();
+            /*
+            |--------------------------------------------------------------------------
+            | Get Assigned Appointments
+            |--------------------------------------------------------------------------
+            */
+
+            $appointments = DB::table(
+                'Appointment'
+            )
+            ->where(
+                'Groomer_ID',
+                $userId
+            )
+            ->orderBy(
+                'Appointment_Date',
+                'desc'
+            )
+            ->orderBy(
+                'Appointment_Time',
+                'desc'
+            )
+            ->get();
 
 
-            $reports = GroomingReport::whereIn(
+            /*
+            |--------------------------------------------------------------------------
+            | Attach Pet And Groomer
+            |--------------------------------------------------------------------------
+            */
+
+            foreach ($appointments as $appointment) {
+
+                $this->attachAppointmentData(
+                    $appointment
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Get Reports
+            |--------------------------------------------------------------------------
+            */
+
+            $appointmentIds =
+                $appointments
+                    ->pluck('Appointment_ID')
+                    ->toArray();
+
+
+            if (!empty($appointmentIds)) {
+
+                $reports = DB::table(
+                    'Grooming_Report'
+                )
+                ->whereIn(
                     'Appointment_ID',
-                    $appointments->pluck('Appointment_ID')
+                    $appointmentIds
                 )
                 ->get()
-                ->keyBy('Appointment_ID');
+                ->keyBy(
+                    'Appointment_ID'
+                );
+
+            } else {
+
+                $reports = collect();
+            }
 
 
             return view(
                 'grooming-reports.index',
-                compact('appointments', 'reports')
+                compact(
+                    'appointments',
+                    'reports'
+                )
             );
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Unknown Role
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()->route('home');
     }
@@ -134,29 +369,66 @@ class GroomingReportController extends Controller
         Request $request,
         $appointmentId
     ) {
-        $check = $this->checkCustomer($request);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Check
+        |--------------------------------------------------------------------------
+        */
+
+        $check =
+            $this->checkCustomer($request);
 
         if ($check) {
             return $check;
         }
 
-        $customerId = $request->session()->get('user_id');
+
+        $customerId =
+            $request->session()->get('user_id');
 
 
-        $appointment = Appointment::with([
-            'pet',
-            'groomer'
-        ])
-        ->where('Appointment_ID', $appointmentId)
-        ->whereHas('pet', function ($query) use ($customerId) {
-            $query->where('Customer_ID', $customerId);
-        })
+        /*
+        |--------------------------------------------------------------------------
+        | Find Customer Appointment
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment = DB::table(
+            'Appointment as a'
+        )
+        ->join(
+            'Pet as p',
+            'a.Pet_ID',
+            '=',
+            'p.Pet_ID'
+        )
+        ->where(
+            'a.Appointment_ID',
+            $appointmentId
+        )
+        ->where(
+            'p.Customer_ID',
+            $customerId
+        )
+        ->select(
+            'a.*'
+        )
         ->first();
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Appointment Not Found
+        |--------------------------------------------------------------------------
+        */
+
         if (!$appointment) {
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'error',
                     'Appointment not found.'
@@ -164,21 +436,57 @@ class GroomingReportController extends Controller
         }
 
 
-        $report = GroomingReport::where(
+        /*
+        |--------------------------------------------------------------------------
+        | Attach Related Data
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Report
+        |--------------------------------------------------------------------------
+        */
+
+        $report = DB::table(
+            'Grooming_Report'
+        )
+        ->where(
             'Appointment_ID',
             $appointmentId
-        )->first();
+        )
+        ->first();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Report Not Available
+        |--------------------------------------------------------------------------
+        */
 
         if (!$report) {
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'error',
                     'Grooming report is not available yet.'
                 );
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'grooming-reports.view',
@@ -200,24 +508,57 @@ class GroomingReportController extends Controller
         Request $request,
         $appointmentId
     ) {
-        $check = $this->checkGroomer($request);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Groomer Check
+        |--------------------------------------------------------------------------
+        */
+
+        $check =
+            $this->checkGroomer($request);
 
         if ($check) {
             return $check;
         }
 
-        $groomerId = $request->session()->get('user_id');
+
+        $groomerId =
+            $request->session()->get('user_id');
 
 
-        $appointment = Appointment::with('pet')
-            ->where('Appointment_ID', $appointmentId)
-            ->where('Groomer_ID', $groomerId)
-            ->first();
+        /*
+        |--------------------------------------------------------------------------
+        | Find Assigned Appointment
+        |--------------------------------------------------------------------------
+        */
 
+        $appointment = DB::table(
+            'Appointment'
+        )
+        ->where(
+            'Appointment_ID',
+            $appointmentId
+        )
+        ->where(
+            'Groomer_ID',
+            $groomerId
+        )
+        ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Appointment Not Found
+        |--------------------------------------------------------------------------
+        */
 
         if (!$appointment) {
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'error',
                     'Appointment not found or not assigned to you.'
@@ -225,13 +566,41 @@ class GroomingReportController extends Controller
         }
 
 
-        $report = GroomingReport::where(
+        /*
+        |--------------------------------------------------------------------------
+        | Attach Pet And Groomer
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Existing Report
+        |--------------------------------------------------------------------------
+        */
+
+        $report = DB::table(
+            'Grooming_Report'
+        )
+        ->where(
             'Appointment_ID',
             $appointmentId
-        )->first();
+        )
+        ->first();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Report Already Exists
+        |--------------------------------------------------------------------------
+        */
 
         if ($report) {
+
             return redirect()
                 ->route(
                     'grooming-reports.edit',
@@ -240,9 +609,17 @@ class GroomingReportController extends Controller
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Return Create View
+        |--------------------------------------------------------------------------
+        */
+
         return view(
             'grooming-reports.create',
-            compact('appointment')
+            compact(
+                'appointment'
+            )
         );
     }
 
@@ -257,30 +634,57 @@ class GroomingReportController extends Controller
         Request $request,
         $appointmentId
     ) {
-        $check = $this->checkGroomer($request);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Groomer Check
+        |--------------------------------------------------------------------------
+        */
+
+        $check =
+            $this->checkGroomer($request);
 
         if ($check) {
             return $check;
         }
 
-        $groomerId = $request->session()->get('user_id');
+
+        $groomerId =
+            $request->session()->get('user_id');
 
 
         /*
         |--------------------------------------------------------------------------
-        | Find Appointment
+        | Find Assigned Appointment
         |--------------------------------------------------------------------------
         */
 
-        $appointment = Appointment::with('pet')
-            ->where('Appointment_ID', $appointmentId)
-            ->where('Groomer_ID', $groomerId)
-            ->first();
+        $appointment = DB::table(
+            'Appointment'
+        )
+        ->where(
+            'Appointment_ID',
+            $appointmentId
+        )
+        ->where(
+            'Groomer_ID',
+            $groomerId
+        )
+        ->first();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Appointment Not Found
+        |--------------------------------------------------------------------------
+        */
 
         if (!$appointment) {
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'error',
                     'Appointment not found or not assigned to you.'
@@ -295,28 +699,46 @@ class GroomingReportController extends Controller
         */
 
         $request->validate([
-            'Coat_Condition' => 'nullable|string|max:255',
-            'Skin_Condition' => 'nullable|string|max:255',
-            'Ear_Cleaning' => 'nullable|string|max:255',
-            'Nail_Trimming' => 'nullable|string|max:255',
-            'Recommendation' => 'nullable|string',
-            'Groomer_Notes' => 'nullable|string',
+
+            'Coat_Condition' =>
+                'nullable|string|max:255',
+
+            'Skin_Condition' =>
+                'nullable|string|max:255',
+
+            'Ear_Cleaning' =>
+                'nullable|string|max:255',
+
+            'Nail_Trimming' =>
+                'nullable|string|max:255',
+
+            'Recommendation' =>
+                'nullable|string',
+
+            'Groomer_Notes' =>
+                'nullable|string',
+
         ]);
 
 
         /*
         |--------------------------------------------------------------------------
-        | Prevent Duplicate Report
+        | Check Existing Report
         |--------------------------------------------------------------------------
         */
 
-        $existingReport = GroomingReport::where(
+        $existingReport = DB::table(
+            'Grooming_Report'
+        )
+        ->where(
             'Appointment_ID',
             $appointmentId
-        )->first();
+        )
+        ->first();
 
 
         if ($existingReport) {
+
             return redirect()
                 ->route(
                     'grooming-reports.edit',
@@ -331,77 +753,139 @@ class GroomingReportController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Create Report + Loyalty Points
+        | Begin Transaction
         |--------------------------------------------------------------------------
         */
 
+        DB::beginTransaction();
+
         try {
-
-            DB::beginTransaction();
-
 
             /*
             |--------------------------------------------------------------------------
-            | 1. Create Grooming Report
+            | STEP 1: Create Grooming Report
             |--------------------------------------------------------------------------
             */
 
-            GroomingReport::create([
-                'Appointment_ID' => $appointmentId,
-                'Coat_Condition' => $request->Coat_Condition,
-                'Skin_Condition' => $request->Skin_Condition,
-                'Ear_Cleaning' => $request->Ear_Cleaning,
-                'Nail_Trimming' => $request->Nail_Trimming,
-                'Recommendation' => $request->Recommendation,
-                'Groomer_Notes' => $request->Groomer_Notes,
-                'Created_At' => now(),
+            DB::table(
+                'Grooming_Report'
+            )
+            ->insert([
+
+                'Appointment_ID' =>
+                    $appointmentId,
+
+                'Coat_Condition' =>
+                    $request->Coat_Condition,
+
+                'Skin_Condition' =>
+                    $request->Skin_Condition,
+
+                'Ear_Cleaning' =>
+                    $request->Ear_Cleaning,
+
+                'Nail_Trimming' =>
+                    $request->Nail_Trimming,
+
+                'Recommendation' =>
+                    $request->Recommendation,
+
+                'Groomer_Notes' =>
+                    $request->Groomer_Notes,
+
+                'Created_At' =>
+                    now(),
+
             ]);
 
 
             /*
             |--------------------------------------------------------------------------
-            | 2. Mark Appointment Completed
+            | STEP 2: Mark Appointment Completed
             |--------------------------------------------------------------------------
             */
 
-            $appointment->Status = 'Completed';
-            $appointment->save();
+            DB::table(
+                'Appointment'
+            )
+            ->where(
+                'Appointment_ID',
+                $appointmentId
+            )
+            ->update([
+
+                'Status' =>
+                    'COMPLETED',
+
+            ]);
 
 
             /*
             |--------------------------------------------------------------------------
-            | 3. Get Customer ID from Pet
+            | STEP 3: Get Customer ID
             |--------------------------------------------------------------------------
             */
 
-            $customerId = $appointment->pet
-                ? $appointment->pet->Customer_ID
-                : null;
+            $pet = DB::table(
+                'Pet'
+            )
+            ->where(
+                'Pet_ID',
+                $appointment->Pet_ID
+            )
+            ->first();
 
+
+            $customerId =
+                $pet
+                    ? $pet->Customer_ID
+                    : null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 4: Calculate Service Price
+            |--------------------------------------------------------------------------
+            */
 
             if ($customerId) {
 
-                /*
-                |--------------------------------------------------------------------------
-                | 4. Calculate Total Service Price
-                |--------------------------------------------------------------------------
-                */
+                $services = DB::table(
+                    'Appointment_Service as aps'
+                )
+                ->join(
+                    'Service as s',
+                    'aps.Service_ID',
+                    '=',
+                    's.Service_ID'
+                )
+                ->where(
+                    'aps.Appointment_ID',
+                    $appointmentId
+                )
+                ->select(
+                    's.Price'
+                )
+                ->get();
 
-                $services = $appointment->services()->get();
 
                 $totalPrice = 0;
 
+
                 foreach ($services as $service) {
-                    $totalPrice += (float) $service->Price;
+
+                    $totalPrice +=
+                        (float) $service->Price;
                 }
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | 5. Calculate Loyalty Points
-                |
-                | 1 point for every 100 BDT
+                | STEP 5: Calculate Loyalty Points
                 |--------------------------------------------------------------------------
+                |
+                | 1 point for every 100 BDT.
+                |
                 */
 
                 $points = (int) floor(
@@ -411,58 +895,118 @@ class GroomingReportController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 6. Add Loyalty Points
+                | STEP 6: Add Loyalty Points
                 |--------------------------------------------------------------------------
                 */
 
                 if ($points > 0) {
 
-                    $customer = Customer::where(
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Customer Row
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $customer = DB::table(
+                        'Customer'
+                    )
+                    ->where(
                         'ID',
                         $customerId
-                    )->lockForUpdate()->first();
+                    )
+                    ->lockForUpdate()
+                    ->first();
 
 
                     if ($customer) {
 
-                        $customer->Loyalty_Points =
+                        $newPoints =
                             (int) $customer->Loyalty_Points
                             + $points;
 
-                        $customer->save();
+
+                        DB::table(
+                            'Customer'
+                        )
+                        ->where(
+                            'ID',
+                            $customerId
+                        )
+                        ->update([
+
+                            'Loyalty_Points' =>
+                                $newPoints,
+
+                        ]);
 
 
                         /*
                         |--------------------------------------------------------------------------
-                        | 7. Create Loyalty Transaction
+                        | STEP 7: Loyalty Transaction
                         |--------------------------------------------------------------------------
                         */
 
-                        DB::table('loyalty_transaction')->insert([
-                            'Appointment_ID' => $appointmentId,
-                            'Customer_ID' => $customerId,
-                            'Points' => $points,
-                            'Transaction_Date' => now(),
-                            'Transaction_Type' => 'EARNED',
+                        DB::table(
+                            'loyalty_transaction'
+                        )
+                        ->insert([
+
+                            'Appointment_ID' =>
+                                $appointmentId,
+
+                            'Customer_ID' =>
+                                $customerId,
+
+                            'Points' =>
+                                $points,
+
+                            'Transaction_Date' =>
+                                now(),
+
+                            'Transaction_Type' =>
+                                'EARNED',
+
                         ]);
                     }
                 }
             }
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Commit Transaction
+            |--------------------------------------------------------------------------
+            */
+
             DB::commit();
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Success
+            |--------------------------------------------------------------------------
+            */
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'success',
                     'Grooming report created successfully.'
                 );
 
+
         } catch (\Exception $e) {
 
+            /*
+            |--------------------------------------------------------------------------
+            | Rollback
+            |--------------------------------------------------------------------------
+            */
+
             DB::rollBack();
+
 
             return back()
                 ->withInput()
@@ -485,24 +1029,57 @@ class GroomingReportController extends Controller
         Request $request,
         $appointmentId
     ) {
-        $check = $this->checkGroomer($request);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Groomer Check
+        |--------------------------------------------------------------------------
+        */
+
+        $check =
+            $this->checkGroomer($request);
 
         if ($check) {
             return $check;
         }
 
-        $groomerId = $request->session()->get('user_id');
+
+        $groomerId =
+            $request->session()->get('user_id');
 
 
-        $appointment = Appointment::with('pet')
-            ->where('Appointment_ID', $appointmentId)
-            ->where('Groomer_ID', $groomerId)
-            ->first();
+        /*
+        |--------------------------------------------------------------------------
+        | Find Assigned Appointment
+        |--------------------------------------------------------------------------
+        */
 
+        $appointment = DB::table(
+            'Appointment'
+        )
+        ->where(
+            'Appointment_ID',
+            $appointmentId
+        )
+        ->where(
+            'Groomer_ID',
+            $groomerId
+        )
+        ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Appointment Not Found
+        |--------------------------------------------------------------------------
+        */
 
         if (!$appointment) {
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'error',
                     'Appointment not found.'
@@ -510,13 +1087,41 @@ class GroomingReportController extends Controller
         }
 
 
-        $report = GroomingReport::where(
+        /*
+        |--------------------------------------------------------------------------
+        | Attach Pet And Groomer
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Report
+        |--------------------------------------------------------------------------
+        */
+
+        $report = DB::table(
+            'Grooming_Report'
+        )
+        ->where(
             'Appointment_ID',
             $appointmentId
-        )->first();
+        )
+        ->first();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Report Not Found
+        |--------------------------------------------------------------------------
+        */
 
         if (!$report) {
+
             return redirect()
                 ->route(
                     'grooming-reports.create',
@@ -524,6 +1129,12 @@ class GroomingReportController extends Controller
                 );
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Edit View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'grooming-reports.edit',
@@ -545,29 +1156,57 @@ class GroomingReportController extends Controller
         Request $request,
         $appointmentId
     ) {
-        $check = $this->checkGroomer($request);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Groomer Check
+        |--------------------------------------------------------------------------
+        */
+
+        $check =
+            $this->checkGroomer($request);
 
         if ($check) {
             return $check;
         }
 
-        $groomerId = $request->session()->get('user_id');
+
+        $groomerId =
+            $request->session()->get('user_id');
 
 
-        $appointment = Appointment::where(
-                'Appointment_ID',
-                $appointmentId
-            )
-            ->where(
-                'Groomer_ID',
-                $groomerId
-            )
-            ->first();
+        /*
+        |--------------------------------------------------------------------------
+        | Check Appointment
+        |--------------------------------------------------------------------------
+        */
 
+        $appointment = DB::table(
+            'Appointment'
+        )
+        ->where(
+            'Appointment_ID',
+            $appointmentId
+        )
+        ->where(
+            'Groomer_ID',
+            $groomerId
+        )
+        ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Appointment Not Found
+        |--------------------------------------------------------------------------
+        */
 
         if (!$appointment) {
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'error',
                     'Appointment not found.'
@@ -575,13 +1214,30 @@ class GroomingReportController extends Controller
         }
 
 
-        $report = GroomingReport::where(
+        /*
+        |--------------------------------------------------------------------------
+        | Get Report
+        |--------------------------------------------------------------------------
+        */
+
+        $report = DB::table(
+            'Grooming_Report'
+        )
+        ->where(
             'Appointment_ID',
             $appointmentId
-        )->first();
+        )
+        ->first();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Report Not Found
+        |--------------------------------------------------------------------------
+        */
 
         if (!$report) {
+
             return redirect()
                 ->route(
                     'grooming-reports.create',
@@ -590,34 +1246,88 @@ class GroomingReportController extends Controller
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Validation
+        |--------------------------------------------------------------------------
+        */
+
         $request->validate([
-            'Coat_Condition' => 'nullable|string|max:255',
-            'Skin_Condition' => 'nullable|string|max:255',
-            'Ear_Cleaning' => 'nullable|string|max:255',
-            'Nail_Trimming' => 'nullable|string|max:255',
-            'Recommendation' => 'nullable|string',
-            'Groomer_Notes' => 'nullable|string',
+
+            'Coat_Condition' =>
+                'nullable|string|max:255',
+
+            'Skin_Condition' =>
+                'nullable|string|max:255',
+
+            'Ear_Cleaning' =>
+                'nullable|string|max:255',
+
+            'Nail_Trimming' =>
+                'nullable|string|max:255',
+
+            'Recommendation' =>
+                'nullable|string',
+
+            'Groomer_Notes' =>
+                'nullable|string',
+
         ]);
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Update Report
+        |--------------------------------------------------------------------------
+        */
+
         try {
 
-            $report->update([
-                'Coat_Condition' => $request->Coat_Condition,
-                'Skin_Condition' => $request->Skin_Condition,
-                'Ear_Cleaning' => $request->Ear_Cleaning,
-                'Nail_Trimming' => $request->Nail_Trimming,
-                'Recommendation' => $request->Recommendation,
-                'Groomer_Notes' => $request->Groomer_Notes,
+            DB::table(
+                'Grooming_Report'
+            )
+            ->where(
+                'Appointment_ID',
+                $appointmentId
+            )
+            ->update([
+
+                'Coat_Condition' =>
+                    $request->Coat_Condition,
+
+                'Skin_Condition' =>
+                    $request->Skin_Condition,
+
+                'Ear_Cleaning' =>
+                    $request->Ear_Cleaning,
+
+                'Nail_Trimming' =>
+                    $request->Nail_Trimming,
+
+                'Recommendation' =>
+                    $request->Recommendation,
+
+                'Groomer_Notes' =>
+                    $request->Groomer_Notes,
+
             ]);
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Success
+            |--------------------------------------------------------------------------
+            */
+
             return redirect()
-                ->route('grooming-reports.index')
+                ->route(
+                    'grooming-reports.index'
+                )
                 ->with(
                     'success',
                     'Grooming report updated successfully.'
                 );
+
 
         } catch (\Exception $e) {
 

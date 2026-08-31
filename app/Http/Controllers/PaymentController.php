@@ -2,10 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Appointment;
-use App\Models\Payment;
-use App\Models\Customer;
-use App\Models\LoyaltyTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -41,6 +37,95 @@ class PaymentController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | Attach Appointment Data
+    |--------------------------------------------------------------------------
+    |
+    | Query Builder only.
+    |
+    | Adds:
+    | - pet
+    | - groomer
+    | - services
+    |
+    */
+
+    private function attachAppointmentData($appointment)
+    {
+        if (!$appointment) {
+            return null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Pet
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->pet = DB::table('Pet')
+            ->where(
+                'Pet_ID',
+                $appointment->Pet_ID
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Groomer
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($appointment->Groomer_ID)) {
+
+            $appointment->groomer = DB::table('Groomer')
+                ->where(
+                    'ID',
+                    $appointment->Groomer_ID
+                )
+                ->first();
+
+        } else {
+
+            $appointment->groomer = null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Services
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->services = DB::table(
+            'Appointment_Service as aps'
+        )
+        ->join(
+            'Service as s',
+            'aps.Service_ID',
+            '=',
+            's.Service_ID'
+        )
+        ->where(
+            'aps.Appointment_ID',
+            $appointment->Appointment_ID
+        )
+        ->select(
+            's.Service_ID',
+            's.Service_Name',
+            's.Price',
+            's.Duration',
+            's.Description'
+        )
+        ->get();
+
+
+        return $appointment;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Show Payment Page
     |--------------------------------------------------------------------------
     */
@@ -49,11 +134,19 @@ class PaymentController extends Controller
         Request $request,
         $appointmentId
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkCustomer($request);
 
         if ($check) {
             return $check;
         }
+
 
         $customerId =
             $request->session()->get('user_id');
@@ -65,10 +158,12 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $customer = Customer::where(
-            'ID',
-            $customerId
-        )->first();
+        $customer = DB::table('Customer')
+            ->where(
+                'ID',
+                $customerId
+            )
+            ->first();
 
 
         if (!$customer) {
@@ -86,26 +181,30 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         | Find Customer Appointment
         |--------------------------------------------------------------------------
+        |
+        | JOIN Appointment + Pet.
+        |
         */
 
-        $appointment = Appointment::with([
-            'pet',
-            'groomer',
-            'services'
-        ])
+        $appointment = DB::table(
+            'Appointment as a'
+        )
+        ->join(
+            'Pet as p',
+            'a.Pet_ID',
+            '=',
+            'p.Pet_ID'
+        )
         ->where(
-            'Appointment_ID',
+            'a.Appointment_ID',
             $appointmentId
         )
-        ->whereHas(
-            'pet',
-            function ($query) use ($customerId) {
-
-                $query->where(
-                    'Customer_ID',
-                    $customerId
-                );
-            }
+        ->where(
+            'p.Customer_ID',
+            $customerId
+        )
+        ->select(
+            'a.*'
         )
         ->first();
 
@@ -123,14 +222,27 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Attach Pet, Groomer, Services
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Check Existing Payment
         |--------------------------------------------------------------------------
         */
 
-        $payment = Payment::where(
-            'Appointment_ID',
-            $appointmentId
-        )->first();
+        $payment = DB::table('Payment')
+            ->where(
+                'Appointment_ID',
+                $appointmentId
+            )
+            ->first();
 
 
         /*
@@ -139,13 +251,16 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $totalAmount =
-            $appointment->services->sum(
-                function ($service) {
+        $totalAmount = 0;
 
-                    return (float) $service->Price;
-                }
-            );
+        foreach (
+            $appointment->services
+            as $service
+        ) {
+
+            $totalAmount +=
+                (float) $service->Price;
+        }
 
 
         /*
@@ -155,7 +270,9 @@ class PaymentController extends Controller
         */
 
         $loyaltyPoints =
-            (int) ($customer->Loyalty_Points ?? 0);
+            (int) (
+                $customer->Loyalty_Points ?? 0
+            );
 
 
         /*
@@ -209,6 +326,13 @@ class PaymentController extends Controller
         Request $request,
         $appointmentId
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkCustomer($request);
 
         if ($check) {
@@ -227,8 +351,10 @@ class PaymentController extends Controller
         */
 
         $request->validate([
+
             'redeem_points' =>
                 'nullable|integer|min:0',
+
         ]);
 
 
@@ -244,10 +370,12 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $customer = Customer::where(
-            'ID',
-            $customerId
-        )->first();
+        $customer = DB::table('Customer')
+            ->where(
+                'ID',
+                $customerId
+            )
+            ->first();
 
 
         if (!$customer) {
@@ -267,22 +395,25 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $appointment = Appointment::with(
-            'services'
+        $appointment = DB::table(
+            'Appointment as a'
+        )
+        ->join(
+            'Pet as p',
+            'a.Pet_ID',
+            '=',
+            'p.Pet_ID'
         )
         ->where(
-            'Appointment_ID',
+            'a.Appointment_ID',
             $appointmentId
         )
-        ->whereHas(
-            'pet',
-            function ($query) use ($customerId) {
-
-                $query->where(
-                    'Customer_ID',
-                    $customerId
-                );
-            }
+        ->where(
+            'p.Customer_ID',
+            $customerId
+        )
+        ->select(
+            'a.*'
         )
         ->first();
 
@@ -300,15 +431,28 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Attach Services
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Prevent Duplicate Payment
         |--------------------------------------------------------------------------
         */
 
         $existingPayment =
-            Payment::where(
-                'Appointment_ID',
-                $appointmentId
-            )->first();
+            DB::table('Payment')
+                ->where(
+                    'Appointment_ID',
+                    $appointmentId
+                )
+                ->first();
 
 
         if ($existingPayment) {
@@ -331,13 +475,16 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $totalAmount =
-            $appointment->services->sum(
-                function ($service) {
+        $totalAmount = 0;
 
-                    return (float) $service->Price;
-                }
-            );
+        foreach (
+            $appointment->services
+            as $service
+        ) {
+
+            $totalAmount +=
+                (float) $service->Price;
+        }
 
 
         /*
@@ -347,7 +494,9 @@ class PaymentController extends Controller
         */
 
         $availablePoints =
-            (int) ($customer->Loyalty_Points ?? 0);
+            (int) (
+                $customer->Loyalty_Points ?? 0
+            );
 
 
         $maxPointsByBill =
@@ -414,23 +563,22 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Database Transaction
+        | Begin Transaction
         |--------------------------------------------------------------------------
         */
 
+        DB::beginTransaction();
+
         try {
-
-            DB::beginTransaction();
-
 
             /*
             |--------------------------------------------------------------------------
-            | Lock Customer
+            | Lock Customer Row
             |--------------------------------------------------------------------------
             */
 
-            $customer =
-                Customer::where(
+            $customer = DB::table('Customer')
+                ->where(
                     'ID',
                     $customerId
                 )
@@ -471,17 +619,52 @@ class PaymentController extends Controller
 
             /*
             |--------------------------------------------------------------------------
+            | Re-check Payment
+            |--------------------------------------------------------------------------
+            */
+
+            $existingPayment =
+                DB::table('Payment')
+                    ->where(
+                        'Appointment_ID',
+                        $appointmentId
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+
+            if ($existingPayment) {
+
+                throw new \Exception(
+                    'Payment already exists for this appointment.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
             | Deduct Loyalty Points
             |--------------------------------------------------------------------------
             */
 
             if ($redeemPoints > 0) {
 
-                $customer->Loyalty_Points =
+                $newPoints =
                     $availablePoints -
                     $redeemPoints;
 
-                $customer->save();
+
+                DB::table('Customer')
+                    ->where(
+                        'ID',
+                        $customerId
+                    )
+                    ->update([
+
+                        'Loyalty_Points' =>
+                            $newPoints,
+
+                    ]);
 
 
                 /*
@@ -490,7 +673,10 @@ class PaymentController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                LoyaltyTransaction::create([
+                DB::table(
+                    'Loyalty_Transaction'
+                )
+                ->insert([
 
                     'Appointment_ID' =>
                         $appointmentId,
@@ -506,6 +692,7 @@ class PaymentController extends Controller
 
                     'Transaction_Type' =>
                         'REDEEM',
+
                 ]);
             }
 
@@ -514,36 +701,35 @@ class PaymentController extends Controller
             |--------------------------------------------------------------------------
             | Create Cash Payment
             |--------------------------------------------------------------------------
-            |
-            | Cash payment starts as PENDING.
-            |
             */
 
-            Payment::create([
+            DB::table('Payment')
+                ->insert([
 
-                'Appointment_ID' =>
-                    $appointmentId,
+                    'Appointment_ID' =>
+                        $appointmentId,
 
-                'Payment_Status' =>
-                    'PENDING',
+                    'Payment_Status' =>
+                        'PENDING',
 
-                'Total_Amount' =>
-                    round(
-                        $finalAmount,
-                        2
-                    ),
+                    'Total_Amount' =>
+                        round(
+                            $finalAmount,
+                            2
+                        ),
 
-                'Payment_Method' =>
-                    'CASH',
+                    'Payment_Method' =>
+                        'CASH',
 
-                'Payment_Date' =>
-                    now(),
-            ]);
+                    'Payment_Date' =>
+                        now(),
+
+                ]);
 
 
             /*
             |--------------------------------------------------------------------------
-            | Commit Transaction
+            | Commit
             |--------------------------------------------------------------------------
             */
 
@@ -570,7 +756,6 @@ class PaymentController extends Controller
 
             DB::rollBack();
 
-
             return back()
                 ->withInput()
                 ->with(
@@ -587,18 +772,14 @@ class PaymentController extends Controller
     | Process Online Payment
     |--------------------------------------------------------------------------
     |
-    | This is a simulated online payment for the project.
+    | Simulated online payment.
     |
     | Customer chooses:
-    |
     | CARD
     | BKASH
     | NAGAD
     |
-    | Payment table stores:
-    |
-    | Payment_Method = ONLINE
-    | Payment_Status = PAID
+    | Database stores Payment_Method = ONLINE.
     |
     */
 
@@ -606,6 +787,13 @@ class PaymentController extends Controller
         Request $request,
         $appointmentId
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkCustomer($request);
 
         if ($check) {
@@ -619,7 +807,7 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Validate Online Payment Method
+        | Validate Online Payment
         |--------------------------------------------------------------------------
         */
 
@@ -652,10 +840,12 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $customer = Customer::where(
-            'ID',
-            $customerId
-        )->first();
+        $customer = DB::table('Customer')
+            ->where(
+                'ID',
+                $customerId
+            )
+            ->first();
 
 
         if (!$customer) {
@@ -671,28 +861,29 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Find Appointment
+        | Find Customer Appointment
         |--------------------------------------------------------------------------
         */
 
-        $appointment = Appointment::with([
-            'pet',
-            'groomer',
-            'services'
-        ])
+        $appointment = DB::table(
+            'Appointment as a'
+        )
+        ->join(
+            'Pet as p',
+            'a.Pet_ID',
+            '=',
+            'p.Pet_ID'
+        )
         ->where(
-            'Appointment_ID',
+            'a.Appointment_ID',
             $appointmentId
         )
-        ->whereHas(
-            'pet',
-            function ($query) use ($customerId) {
-
-                $query->where(
-                    'Customer_ID',
-                    $customerId
-                );
-            }
+        ->where(
+            'p.Customer_ID',
+            $customerId
+        )
+        ->select(
+            'a.*'
         )
         ->first();
 
@@ -710,15 +901,28 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Attach Appointment Data
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Prevent Duplicate Payment
         |--------------------------------------------------------------------------
         */
 
         $existingPayment =
-            Payment::where(
-                'Appointment_ID',
-                $appointmentId
-            )->first();
+            DB::table('Payment')
+                ->where(
+                    'Appointment_ID',
+                    $appointmentId
+                )
+                ->first();
 
 
         if ($existingPayment) {
@@ -741,18 +945,21 @@ class PaymentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $totalAmount =
-            $appointment->services->sum(
-                function ($service) {
+        $totalAmount = 0;
 
-                    return (float) $service->Price;
-                }
-            );
+        foreach (
+            $appointment->services
+            as $service
+        ) {
+
+            $totalAmount +=
+                (float) $service->Price;
+        }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Calculate Loyalty Points
+        | Loyalty Points
         |--------------------------------------------------------------------------
         */
 
@@ -799,7 +1006,7 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Calculate Loyalty Discount
+        | Calculate Discount
         |--------------------------------------------------------------------------
         */
 
@@ -826,14 +1033,13 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Database Transaction
+        | Begin Transaction
         |--------------------------------------------------------------------------
         */
 
+        DB::beginTransaction();
+
         try {
-
-            DB::beginTransaction();
-
 
             /*
             |--------------------------------------------------------------------------
@@ -841,8 +1047,8 @@ class PaymentController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            $customer =
-                Customer::where(
+            $customer = DB::table('Customer')
+                ->where(
                     'ID',
                     $customerId
                 )
@@ -883,17 +1089,52 @@ class PaymentController extends Controller
 
             /*
             |--------------------------------------------------------------------------
+            | Re-check Payment
+            |--------------------------------------------------------------------------
+            */
+
+            $existingPayment =
+                DB::table('Payment')
+                    ->where(
+                        'Appointment_ID',
+                        $appointmentId
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+
+            if ($existingPayment) {
+
+                throw new \Exception(
+                    'Payment already exists for this appointment.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
             | Deduct Loyalty Points
             |--------------------------------------------------------------------------
             */
 
             if ($redeemPoints > 0) {
 
-                $customer->Loyalty_Points =
+                $newPoints =
                     $availablePoints -
                     $redeemPoints;
 
-                $customer->save();
+
+                DB::table('Customer')
+                    ->where(
+                        'ID',
+                        $customerId
+                    )
+                    ->update([
+
+                        'Loyalty_Points' =>
+                            $newPoints,
+
+                    ]);
 
 
                 /*
@@ -902,7 +1143,10 @@ class PaymentController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                LoyaltyTransaction::create([
+                DB::table(
+                    'Loyalty_Transaction'
+                )
+                ->insert([
 
                     'Appointment_ID' =>
                         $appointmentId,
@@ -918,6 +1162,7 @@ class PaymentController extends Controller
 
                     'Transaction_Type' =>
                         'REDEEM',
+
                 ]);
             }
 
@@ -927,33 +1172,32 @@ class PaymentController extends Controller
             | Create Online Payment
             |--------------------------------------------------------------------------
             |
-            | Payment_Method must be ONLINE because your
-            | database ENUM is:
-            |
-            | CASH, CARD, ONLINE
+            | Your Payment_Method is stored as ONLINE.
             |
             */
 
-            Payment::create([
+            DB::table('Payment')
+                ->insert([
 
-                'Appointment_ID' =>
-                    $appointmentId,
+                    'Appointment_ID' =>
+                        $appointmentId,
 
-                'Payment_Status' =>
-                    'PAID',
+                    'Payment_Status' =>
+                        'PAID',
 
-                'Total_Amount' =>
-                    round(
-                        $finalAmount,
-                        2
-                    ),
+                    'Total_Amount' =>
+                        round(
+                            $finalAmount,
+                            2
+                        ),
 
-                'Payment_Method' =>
-                    'ONLINE',
+                    'Payment_Method' =>
+                        'ONLINE',
 
-                'Payment_Date' =>
-                    now(),
-            ]);
+                    'Payment_Date' =>
+                        now(),
+
+                ]);
 
 
             /*
@@ -967,7 +1211,7 @@ class PaymentController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Payment Successful
+            | Success
             |--------------------------------------------------------------------------
             */
 
@@ -986,7 +1230,6 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
 
             DB::rollBack();
-
 
             return back()
                 ->withInput()
@@ -1009,6 +1252,13 @@ class PaymentController extends Controller
         Request $request,
         $appointmentId
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Check
+        |--------------------------------------------------------------------------
+        */
+
         $check = $this->checkCustomer($request);
 
         if ($check) {
@@ -1022,28 +1272,29 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Find Appointment
+        | Find Customer Appointment
         |--------------------------------------------------------------------------
         */
 
-        $appointment = Appointment::with([
-            'pet',
-            'groomer',
-            'services'
-        ])
+        $appointment = DB::table(
+            'Appointment as a'
+        )
+        ->join(
+            'Pet as p',
+            'a.Pet_ID',
+            '=',
+            'p.Pet_ID'
+        )
         ->where(
-            'Appointment_ID',
+            'a.Appointment_ID',
             $appointmentId
         )
-        ->whereHas(
-            'pet',
-            function ($query) use ($customerId) {
-
-                $query->where(
-                    'Customer_ID',
-                    $customerId
-                );
-            }
+        ->where(
+            'p.Customer_ID',
+            $customerId
+        )
+        ->select(
+            'a.*'
         )
         ->first();
 
@@ -1061,15 +1312,27 @@ class PaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Attach Pet, Groomer, Services
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Find Payment
         |--------------------------------------------------------------------------
         */
 
-        $payment =
-            Payment::where(
+        $payment = DB::table('Payment')
+            ->where(
                 'Appointment_ID',
                 $appointmentId
-            )->first();
+            )
+            ->first();
 
 
         if (!$payment) {

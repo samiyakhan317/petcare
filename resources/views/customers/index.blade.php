@@ -1,79 +1,121 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Customers</title>
+@extends('layouts.app')
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-        }
+@section('title', 'Manage Customers')
 
-        h1 {
-            margin-bottom: 20px;
-        }
+@section('content')
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+<style>
+    .customers-page {
+        min-height: calc(100vh - 70px);
+        padding: 40px;
+        background: #f4f6f8;
+    }
 
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 10px;
-            text-align: left;
-        }
+    .customers-container {
+        max-width: 1200px;
+        margin: auto;
+    }
 
-        th {
-            background: #f2f2f2;
-        }
-    </style>
-</head>
+    .customers-container h1 {
+        margin-bottom: 25px;
+        color: #333;
+    }
 
-<body>
+    .table-box {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        overflow-x: auto;
+    }
 
-<h1>Customer List</h1>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-<table>
+    th,
+    td {
+        border-bottom: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+    }
 
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Address</th>
-            <th>Loyalty Points</th>
-        </tr>
-    </thead>
+    th {
+        background: #333;
+        color: white;
+    }
 
-    <tbody>
+    tr:hover {
+        background: #f8f8f8;
+    }
 
-        @forelse($customers as $customer)
+    .empty-message {
+        text-align: center;
+        color: #777;
+        padding: 20px;
+    }
+</style>
 
-            <tr>
-                <td>{{ $customer->ID }}</td>
-                <td>{{ $customer->First_name }}</td>
-                <td>{{ $customer->Last_name }}</td>
-                <td>{{ $customer->Email }}</td>
-                <td>{{ $customer->Address }}</td>
-                <td>{{ $customer->Loyalty_Points }}</td>
-            </tr>
+<div class="customers-page">
 
-        @empty
+```
+<div class="customers-container">
 
-            <tr>
-                <td colspan="6">
-                    No customers found.
-                </td>
-            </tr>
+    <h1>Customer List</h1>
 
-        @endforelse
+    <div class="table-box">
 
-    </tbody>
+        <table>
 
-</table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Address</th>
+                    <th>Loyalty Points</th>
+                </tr>
+            </thead>
 
-</body>
-</html>
+            <tbody>
+
+                @forelse($customers as $customer)
+
+                    <tr>
+                        <td>{{ $customer->ID }}</td>
+
+                        <td>{{ $customer->First_name }}</td>
+
+                        <td>{{ $customer->Last_name }}</td>
+
+                        <td>{{ $customer->Email }}</td>
+
+                        <td>{{ $customer->Address }}</td>
+
+                        <td>{{ $customer->Loyalty_Points }}</td>
+                    </tr>
+
+                @empty
+
+                    <tr>
+                        <td colspan="6" class="empty-message">
+                            No customers found.
+                        </td>
+                    </tr>
+
+                @endforelse
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+```
+
+</div>
+
+@endsection

@@ -8,6 +8,7 @@
 
     .reports-page {
         min-height: calc(100vh - 70px);
+
         background:
             linear-gradient(
                 135deg,
@@ -15,6 +16,7 @@
                 #f7fbff,
                 #dff3f0
             );
+
         padding: 50px 40px;
     }
 
@@ -60,8 +62,10 @@
         background: white;
         border-radius: 15px;
         padding: 25px;
+
         box-shadow:
             0 10px 30px rgba(0, 0, 0, 0.10);
+
         overflow-x: auto;
     }
 
@@ -95,6 +99,7 @@
         border-radius: 20px;
         font-size: 13px;
         font-weight: bold;
+        white-space: nowrap;
     }
 
     .status-pending {
@@ -117,6 +122,11 @@
         color: #721c24;
     }
 
+    .status-default {
+        background: #eee;
+        color: #555;
+    }
+
     .action-button {
         display: inline-block;
         padding: 8px 14px;
@@ -125,6 +135,7 @@
         font-weight: bold;
         font-size: 13px;
         margin-right: 5px;
+        white-space: nowrap;
     }
 
     .create-button {
@@ -160,6 +171,7 @@
         border-radius: 15px;
         padding: 60px 30px;
         text-align: center;
+
         box-shadow:
             0 10px 30px rgba(0, 0, 0, 0.10);
     }
@@ -202,31 +214,440 @@
 
 </style>
 
-
 <div class="reports-page">
 
-    <div class="reports-container">
+```
+<div class="reports-container">
 
-        <!-- =========================
-             HEADER
-        ========================== -->
 
-        <div class="reports-header">
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
 
-            <h1>
-                Grooming Reports
-            </h1>
+    <div class="reports-header">
+
+        <h1>
+            Grooming Reports
+        </h1>
+
+
+        @if(strtoupper(session('role', '')) === 'CUSTOMER')
+
+            <p>
+                View grooming reports for your pets.
+            </p>
+
+        @elseif(strtoupper(session('role', '')) === 'GROOMER')
+
+            <p>
+                View your assigned appointments and manage grooming reports.
+            </p>
+
+        @endif
+
+    </div>
+
+
+    <!-- =====================================================
+         SUCCESS MESSAGE
+    ====================================================== -->
+
+    @if(session('success'))
+
+        <div class="alert alert-success">
+
+            {{ session('success') }}
+
+        </div>
+
+    @endif
+
+
+    <!-- =====================================================
+         ERROR MESSAGE
+    ====================================================== -->
+
+    @if(session('error'))
+
+        <div class="alert alert-error">
+
+            {{ session('error') }}
+
+        </div>
+
+    @endif
+
+
+    <!-- =====================================================
+         VALIDATION ERRORS
+    ====================================================== -->
+
+    @if($errors->any())
+
+        <div class="alert alert-error">
+
+            @foreach($errors->all() as $error)
+
+                <div>
+                    {{ $error }}
+                </div>
+
+            @endforeach
+
+        </div>
+
+    @endif
+
+
+    <!-- =====================================================
+         APPOINTMENTS
+    ====================================================== -->
+
+    @if(count($appointments) > 0)
+
+
+        <div class="reports-card">
+
+            <table class="reports-table">
+
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Appointment ID
+                        </th>
+
+                        <th>
+                            Pet
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Time
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Report
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    @foreach($appointments as $appointment)
+
+
+                        @php
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Report Lookup
+                            |--------------------------------------------------------------------------
+                            |
+                            | The controller should pass $reports as a normal
+                            | PHP array indexed by Appointment_ID.
+                            |
+                            | Example:
+                            |
+                            | $reports[5] = report object
+                            |
+                            */
+
+                            $appointmentId =
+                                $appointment->Appointment_ID;
+
+                            $report =
+                                isset($reports[$appointmentId])
+                                ? $reports[$appointmentId]
+                                : null;
+
+
+                            $status =
+                                strtolower(
+                                    $appointment->Status ?? 'pending'
+                                );
+
+                        @endphp
+
+
+                        <tr>
+
+
+                            <!-- =================================================
+                                 APPOINTMENT ID
+                            ================================================== -->
+
+                            <td>
+
+                                #{{ $appointment->Appointment_ID }}
+
+                            </td>
+
+
+                            <!-- =================================================
+                                 PET
+                            ================================================== -->
+
+                            <td>
+
+                                @if(!empty($appointment->Pet_Name))
+
+                                    {{ $appointment->Pet_Name }}
+
+                                @else
+
+                                    N/A
+
+                                @endif
+
+                            </td>
+
+
+                            <!-- =================================================
+                                 DATE
+                            ================================================== -->
+
+                            <td>
+
+                                @if(!empty($appointment->Appointment_Date))
+
+                                    {{ date(
+                                        'd M Y',
+                                        strtotime(
+                                            $appointment->Appointment_Date
+                                        )
+                                    ) }}
+
+                                @else
+
+                                    N/A
+
+                                @endif
+
+                            </td>
+
+
+                            <!-- =================================================
+                                 TIME
+                            ================================================== -->
+
+                            <td>
+
+                                @if(!empty($appointment->Appointment_Time))
+
+                                    {{ date(
+                                        'h:i A',
+                                        strtotime(
+                                            $appointment->Appointment_Time
+                                        )
+                                    ) }}
+
+                                @else
+
+                                    N/A
+
+                                @endif
+
+                            </td>
+
+
+                            <!-- =================================================
+                                 STATUS
+                            ================================================== -->
+
+                            <td>
+
+                                @if($status === 'pending')
+
+                                    <span class="status status-pending">
+                                        PENDING
+                                    </span>
+
+                                @elseif($status === 'confirmed')
+
+                                    <span class="status status-confirmed">
+                                        CONFIRMED
+                                    </span>
+
+                                @elseif($status === 'completed')
+
+                                    <span class="status status-completed">
+                                        COMPLETED
+                                    </span>
+
+                                @elseif($status === 'cancelled')
+
+                                    <span class="status status-cancelled">
+                                        CANCELLED
+                                    </span>
+
+                                @else
+
+                                    <span class="status status-default">
+                                        {{ strtoupper($appointment->Status ?? 'PENDING') }}
+                                    </span>
+
+                                @endif
+
+                            </td>
+
+
+                            <!-- =================================================
+                                 REPORT ACTION
+                            ================================================== -->
+
+                            <td>
+
+
+                                {{-- =================================================
+                                     CUSTOMER
+                                ================================================== --}}
+
+                                @if(strtoupper(session('role', '')) === 'CUSTOMER')
+
+
+                                    @if($report)
+
+                                        <a
+                                            href="{{ route(
+                                                'grooming-reports.view',
+                                                $appointment->Appointment_ID
+                                            ) }}"
+                                            class="action-button create-button"
+                                        >
+
+                                            View Report
+
+                                        </a>
+
+                                    @else
+
+                                        <span class="not-available-label">
+
+                                            Report Not Available
+
+                                        </span>
+
+                                    @endif
+
+
+                                {{-- =================================================
+                                     GROOMER
+                                ================================================== --}}
+
+                                @elseif(strtoupper(session('role', '')) === 'GROOMER')
+
+
+                                    @if($report)
+
+                                        <a
+                                            href="{{ route(
+                                                'grooming-reports.edit',
+                                                $appointment->Appointment_ID
+                                            ) }}"
+                                            class="action-button edit-button"
+                                        >
+
+                                            Edit Report
+
+                                        </a>
+
+                                    @else
+
+
+                                        @if($status !== 'cancelled')
+
+                                            <a
+                                                href="{{ route(
+                                                    'grooming-reports.create',
+                                                    $appointment->Appointment_ID
+                                                ) }}"
+                                                class="action-button create-button"
+                                            >
+
+                                                Create Report
+
+                                            </a>
+
+                                        @else
+
+                                            <span class="completed-label">
+
+                                                Cancelled
+
+                                            </span>
+
+                                        @endif
+
+
+                                    @endif
+
+
+                                @endif
+
+
+                            </td>
+
+
+                        </tr>
+
+
+                    @endforeach
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    @else
+
+
+        <!-- =====================================================
+             NO APPOINTMENTS
+        ====================================================== -->
+
+        <div class="no-reports">
+
+            <div class="icon">
+                🐾
+            </div>
+
 
             @if(strtoupper(session('role', '')) === 'CUSTOMER')
 
+                <h2>
+                    No Appointments Found
+                </h2>
+
                 <p>
-                    View grooming reports for your pets.
+                    You currently have no appointments or grooming reports.
                 </p>
+
 
             @elseif(strtoupper(session('role', '')) === 'GROOMER')
 
+                <h2>
+                    No Assigned Appointments
+                </h2>
+
                 <p>
-                    View your assigned appointments and manage grooming reports.
+                    You currently have no appointments assigned to you.
                 </p>
 
             @endif
@@ -234,293 +655,11 @@
         </div>
 
 
-        <!-- =========================
-             SUCCESS MESSAGE
-        ========================== -->
+    @endif
 
-        @if(session('success'))
 
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-
-        @endif
-
-
-        <!-- =========================
-             ERROR MESSAGE
-        ========================== -->
-
-        @if(session('error'))
-
-            <div class="alert alert-error">
-                {{ session('error') }}
-            </div>
-
-        @endif
-
-
-        <!-- =========================
-             APPOINTMENTS
-        ========================== -->
-
-        @if($appointments->count() > 0)
-
-            <div class="reports-card">
-
-                <table class="reports-table">
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                Appointment ID
-                            </th>
-
-                            <th>
-                                Pet
-                            </th>
-
-                            <th>
-                                Date
-                            </th>
-
-                            <th>
-                                Time
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Report
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                        @foreach($appointments as $appointment)
-
-                            @php
-
-                                $report = $reports->get(
-                                    $appointment->Appointment_ID
-                                );
-
-                                $status = strtolower(
-                                    $appointment->Status ?? 'pending'
-                                );
-
-                            @endphp
-
-
-                            <tr>
-
-                                <!-- =========================
-                                     APPOINTMENT ID
-                                ========================== -->
-
-                                <td>
-                                    #{{ $appointment->Appointment_ID }}
-                                </td>
-
-
-                                <!-- =========================
-                                     PET
-                                ========================== -->
-
-                                <td>
-
-                                    @if($appointment->pet)
-
-                                        {{ $appointment->pet->Name }}
-
-                                    @else
-
-                                        N/A
-
-                                    @endif
-
-                                </td>
-
-
-                                <!-- =========================
-                                     DATE
-                                ========================== -->
-
-                                <td>
-
-                                    {{ \Carbon\Carbon::parse(
-                                        $appointment->Appointment_Date
-                                    )->format('d M Y') }}
-
-                                </td>
-
-
-                                <!-- =========================
-                                     TIME
-                                ========================== -->
-
-                                <td>
-
-                                    {{ \Carbon\Carbon::parse(
-                                        $appointment->Appointment_Time
-                                    )->format('h:i A') }}
-
-                                </td>
-
-
-                                <!-- =========================
-                                     STATUS
-                                ========================== -->
-
-                                <td>
-
-                                    <span
-                                        class="status status-{{ $status }}"
-                                    >
-
-                                        {{ $appointment->Status ?? 'Pending' }}
-
-                                    </span>
-
-                                </td>
-
-
-                                <!-- =========================
-                                     REPORT ACTION
-                                ========================== -->
-
-                                <td>
-
-                                    {{-- CUSTOMER --}}
-
-                                    @if(strtoupper(session('role', '')) === 'CUSTOMER')
-
-                                        @if($report)
-
-                                            <a
-                                                href="{{ route(
-                                                    'grooming-reports.view',
-                                                    $appointment->Appointment_ID
-                                                ) }}"
-                                                class="action-button create-button"
-                                            >
-                                                View Report
-                                            </a>
-
-                                        @else
-
-                                            <span class="not-available-label">
-                                                Report Not Available
-                                            </span>
-
-                                        @endif
-
-
-                                    {{-- GROOMER --}}
-
-                                    @elseif(strtoupper(session('role', '')) === 'GROOMER')
-
-                                        @if($report)
-
-                                            <a
-                                                href="{{ route(
-                                                    'grooming-reports.edit',
-                                                    $appointment->Appointment_ID
-                                                ) }}"
-                                                class="action-button edit-button"
-                                            >
-                                                Edit Report
-                                            </a>
-
-                                        @else
-
-                                            @if(
-                                                strtolower(
-                                                    $appointment->Status ?? ''
-                                                ) !== 'cancelled'
-                                            )
-
-                                                <a
-                                                    href="{{ route(
-                                                        'grooming-reports.create',
-                                                        $appointment->Appointment_ID
-                                                    ) }}"
-                                                    class="action-button create-button"
-                                                >
-                                                    Create Report
-                                                </a>
-
-                                            @else
-
-                                                <span class="completed-label">
-                                                    Cancelled
-                                                </span>
-
-                                            @endif
-
-                                        @endif
-
-                                    @endif
-
-                                </td>
-
-                            </tr>
-
-                        @endforeach
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        @else
-
-            <!-- =========================
-                 NO APPOINTMENTS
-            ========================== -->
-
-            <div class="no-reports">
-
-                <div class="icon">
-                    🐾
-                </div>
-
-                @if(strtoupper(session('role', '')) === 'CUSTOMER')
-
-                    <h2>
-                        No Appointments Found
-                    </h2>
-
-                    <p>
-                        You currently have no appointments or grooming reports.
-                    </p>
-
-                @elseif(strtoupper(session('role', '')) === 'GROOMER')
-
-                    <h2>
-                        No Assigned Appointments
-                    </h2>
-
-                    <p>
-                        You currently have no appointments assigned to you.
-                    </p>
-
-                @endif
-
-            </div>
-
-        @endif
-
-    </div>
+</div>
+```
 
 </div>
 

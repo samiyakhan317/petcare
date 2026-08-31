@@ -5,6 +5,7 @@
 @section('content')
 
 <style>
+
     .pet-container {
         width: 90%;
         max-width: 800px;
@@ -30,7 +31,6 @@
         font-size: 15px;
     }
 
-    /* SUCCESS MESSAGE */
     .success-message {
         background: #e8f7ed;
         color: #217a3a;
@@ -40,7 +40,6 @@
         border-left: 4px solid #28a745;
     }
 
-    /* ERROR MESSAGE */
     .error-message {
         background: #ffe8e8;
         color: #b00000;
@@ -58,7 +57,6 @@
         margin-bottom: 4px;
     }
 
-    /* FORM */
     .row {
         display: flex;
         gap: 20px;
@@ -108,7 +106,6 @@
         margin-top: 5px;
     }
 
-    /* BUTTONS */
     .buttons {
         display: flex;
         gap: 15px;
@@ -147,7 +144,6 @@
         background: #ddd;
     }
 
-    /* MOBILE */
     @media (max-width: 750px) {
 
         .pet-container {
@@ -166,7 +162,9 @@
         .buttons {
             flex-direction: column;
         }
+
     }
+
 </style>
 
 <div class="pet-container">
@@ -174,7 +172,9 @@
 ```
 <div class="form-card">
 
-    <h1>Add New Pet</h1>
+    <h1>
+        Add New Pet
+    </h1>
 
     <p class="subtitle">
         Add your pet's information to create a pet profile.
@@ -182,6 +182,7 @@
 
 
     {{-- SUCCESS MESSAGE --}}
+
     @if(session('success'))
 
         <div class="success-message">
@@ -192,6 +193,7 @@
 
 
     {{-- ERROR MESSAGE --}}
+
     @if(session('error'))
 
         <div class="error-message">
@@ -202,11 +204,14 @@
 
 
     {{-- VALIDATION ERRORS --}}
+
     @if($errors->any())
 
         <div class="error-message">
 
-            <strong>Please fix the following:</strong>
+            <strong>
+                Please fix the following:
+            </strong>
 
             <ul>
 
@@ -226,6 +231,7 @@
 
 
     {{-- ADD PET FORM --}}
+
     <form
         method="POST"
         action="{{ route('pets.store') }}"
@@ -235,6 +241,7 @@
 
 
         {{-- PET NAME --}}
+
         <div class="field">
 
             <label for="Name">
@@ -254,6 +261,7 @@
 
 
         {{-- BREED --}}
+
         <div class="field">
 
             <label for="Breed">
@@ -273,9 +281,11 @@
 
 
         {{-- DOB + GENDER --}}
+
         <div class="row">
 
             {{-- DATE OF BIRTH --}}
+
             <div class="field">
 
                 <label for="DOB">
@@ -299,6 +309,7 @@
 
 
             {{-- GENDER --}}
+
             <div class="field">
 
                 <label for="Gender">
@@ -337,6 +348,7 @@
 
 
         {{-- WEIGHT --}}
+
         <div class="field">
 
             <label for="Weight">
@@ -358,6 +370,7 @@
 
 
         {{-- ALLERGIES --}}
+
         <div class="field">
 
             <label for="Allergies">
@@ -374,6 +387,7 @@
 
 
         {{-- VACCINATION STATUS --}}
+
         <div class="field">
 
             <label for="Vaccination_Status">
@@ -387,7 +401,7 @@
             >
 
                 <option value="">
-                    Select vaccination Status
+                    Select Vaccination Status
                 </option>
 
                 <option
@@ -417,6 +431,7 @@
 
 
         {{-- BUTTONS --}}
+
         <div class="buttons">
 
             <a

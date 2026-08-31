@@ -5,6 +5,7 @@
 @section('content')
 
 <style>
+
     .pets-container {
         width: 85%;
         max-width: 1100px;
@@ -32,7 +33,7 @@
 
     /* =========================
        MESSAGES
-       ========================= */
+    ========================== */
 
     .success-message {
         background: #e8f7ee;
@@ -59,9 +60,13 @@
         padding-left: 20px;
     }
 
+    .error-message li {
+        margin-bottom: 4px;
+    }
+
     /* =========================
        ADD PET BUTTON
-       ========================= */
+    ========================== */
 
     .add-button {
         display: inline-block;
@@ -82,7 +87,7 @@
 
     /* =========================
        PET GRID
-       ========================= */
+    ========================== */
 
     .pet-grid {
         display: grid;
@@ -94,7 +99,9 @@
         background-color: white;
         padding: 25px;
         border-radius: 15px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.07);
+
+        box-shadow:
+            0 5px 20px rgba(0, 0, 0, 0.07);
 
         display: flex;
         flex-direction: column;
@@ -105,7 +112,9 @@
 
     .pet-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.10);
+
+        box-shadow:
+            0 8px 25px rgba(0, 0, 0, 0.10);
     }
 
     .pet-name {
@@ -131,11 +140,12 @@
 
     /* =========================
        ACTIONS
-       ========================= */
+    ========================== */
 
     .buttons {
         margin-top: 20px;
         padding-top: 15px;
+
         border-top: 1px solid #eee;
 
         display: flex;
@@ -172,7 +182,7 @@
 
     /* =========================
        NO PETS
-       ========================= */
+    ========================== */
 
     .no-pets {
         background-color: white;
@@ -181,7 +191,8 @@
         text-align: center;
         color: #777;
 
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        box-shadow:
+            0 5px 20px rgba(0, 0, 0, 0.05);
     }
 
     .no-pets-icon {
@@ -200,7 +211,7 @@
 
     /* =========================
        MOBILE
-       ========================= */
+    ========================== */
 
     @media (max-width: 750px) {
 
@@ -223,26 +234,31 @@
             grid-template-columns: 1fr;
         }
     }
+
 </style>
 
 
 <div class="pets-container">
 
+
     <!-- =========================
          PAGE HEADER
-         ========================= -->
+    ========================== -->
 
     <div class="page-header">
 
         <div>
-            <h1>My Pets</h1>
+
+            <h1>
+                My Pets
+            </h1>
 
             <p class="subtitle">
                 Manage your pet profiles and health information.
             </p>
+
         </div>
 
-        <!-- ONLY ONE ADD PET BUTTON -->
 
         <a
             href="{{ route('pets.create') }}"
@@ -256,12 +272,14 @@
 
     <!-- =========================
          SUCCESS MESSAGE
-         ========================= -->
+    ========================== -->
 
     @if(session('success'))
 
         <div class="success-message">
+
             ✅ {{ session('success') }}
+
         </div>
 
     @endif
@@ -269,12 +287,14 @@
 
     <!-- =========================
          ERROR MESSAGE
-         ========================= -->
+    ========================== -->
 
     @if(session('error'))
 
         <div class="error-message">
+
             ❌ {{ session('error') }}
+
         </div>
 
     @endif
@@ -282,13 +302,15 @@
 
     <!-- =========================
          VALIDATION ERRORS
-         ========================= -->
+    ========================== -->
 
     @if($errors->any())
 
         <div class="error-message">
 
-            <strong>Please fix the following:</strong>
+            <strong>
+                Please fix the following:
+            </strong>
 
             <ul>
 
@@ -309,88 +331,175 @@
 
     <!-- =========================
          PET LIST
-         ========================= -->
+    ========================== -->
 
-    @if($pets->count() > 0)
+    @if(!empty($pets) && count($pets) > 0)
 
         <div class="pet-grid">
+
 
             @foreach($pets as $pet)
 
                 <div class="pet-card">
 
+
                     <div class="pet-info">
 
+
+                        <!-- PET NAME -->
+
                         <h2 class="pet-name">
+
                             🐾 {{ $pet->Name }}
+
                         </h2>
 
+
+                        <!-- PET ID -->
+
                         <p>
-                            <strong>Pet ID:</strong>
+
+                            <strong>
+                                Pet ID:
+                            </strong>
+
                             {{ $pet->Pet_ID }}
+
                         </p>
 
+
+                        <!-- BREED -->
+
                         <p>
-                            <strong>Breed:</strong>
-                            {{ $pet->Breed ?: 'N/A' }}
+
+                            <strong>
+                                Breed:
+                            </strong>
+
+                            {{ !empty($pet->Breed) ? $pet->Breed : 'N/A' }}
+
                         </p>
 
+
+                        <!-- DATE OF BIRTH -->
+
                         <p>
-                            <strong>Date of Birth:</strong>
-                            {{ $pet->DOB ?: 'N/A' }}
+
+                            <strong>
+                                Date of Birth:
+                            </strong>
+
+                            {{ !empty($pet->DOB) ? $pet->DOB : 'N/A' }}
+
                         </p>
 
+
+                        <!-- AGE -->
+
                         <p>
-                            <strong>Age:</strong>
-                            {{ $pet->age?? 'N/A' }}
+
+                            <strong>
+                                Age:
+                            </strong>
+
+                            {{ isset($pet->age) ? $pet->age : 'N/A' }}
+
                         </p>
 
-                        <p>
-                            <strong>Weight:</strong>
 
-                            @if($pet->Weight !== null)
+                        <!-- WEIGHT -->
+
+                        <p>
+
+                            <strong>
+                                Weight:
+                            </strong>
+
+                            @if(isset($pet->Weight) && $pet->Weight !== null)
+
                                 {{ $pet->Weight }} kg
+
                             @else
+
                                 N/A
+
                             @endif
 
                         </p>
 
-                        <p>
-                            <strong>Gender:</strong>
-                            {{ $pet->Gender ?: 'N/A' }}
-                        </p>
+
+                        <!-- GENDER -->
 
                         <p>
-                            <strong>Allergies:</strong>
-                            {{ $pet->Allergies ?: 'None' }}
+
+                            <strong>
+                                Gender:
+                            </strong>
+
+                            {{ !empty($pet->Gender) ? $pet->Gender : 'N/A' }}
+
                         </p>
 
+
+                        <!-- ALLERGIES -->
+
                         <p>
-                            <strong>Vaccination Status:</strong>
-                            {{ $pet->Vaccination_Status ?: 'N/A' }}
+
+                            <strong>
+                                Allergies:
+                            </strong>
+
+                            {{ !empty($pet->Allergies) ? $pet->Allergies : 'None' }}
+
                         </p>
+
+
+                        <!-- VACCINATION STATUS -->
+
+                        <p>
+
+                            <strong>
+                                Vaccination Status:
+                            </strong>
+
+                            {{ !empty($pet->Vaccination_Status) ? $pet->Vaccination_Status : 'N/A' }}
+
+                        </p>
+
 
                     </div>
 
 
                     <!-- =========================
                          EDIT / DELETE
-                         ========================= -->
+                    ========================== -->
 
                     <div class="buttons">
 
+
+                        <!-- EDIT -->
+
                         <a
-                            href="{{ route('pets.edit', $pet->Pet_ID) }}"
+                            href="{{ route(
+                                'pets.edit',
+                                $pet->Pet_ID
+                            ) }}"
                             class="edit-button"
                         >
+
                             Edit
+
                         </a>
 
 
+                        <!-- DELETE -->
+
                         <form
                             method="POST"
-                            action="{{ route('pets.destroy', $pet->Pet_ID) }}"
+                            action="{{ route(
+                                'pets.destroy',
+                                $pet->Pet_ID
+                            ) }}"
                             onsubmit="return confirm('Are you sure you want to delete this pet profile?');"
                             style="display: inline;"
                         >
@@ -399,45 +508,74 @@
 
                             @method('DELETE')
 
+
                             <button
                                 type="submit"
                                 class="delete-button"
                             >
+
                                 Delete
+
                             </button>
 
                         </form>
 
+
                     </div>
+
 
                 </div>
 
             @endforeach
 
+
         </div>
+
 
     @else
 
+
         <!-- =========================
              NO PETS
-             ========================= -->
+        ========================== -->
 
         <div class="no-pets">
 
+
             <div class="no-pets-icon">
+
                 🐾
+
             </div>
 
-            <h2>No Pets Added Yet</h2>
+
+            <h2>
+
+                No Pets Added Yet
+
+            </h2>
+
 
             <p>
+
                 You have not added any pets yet.
-                Click <strong>+ Add Pet</strong> above to create your first pet profile.
+
+                Click
+
+                <strong>
+                    + Add Pet
+                </strong>
+
+                above to create your first pet profile.
+
             </p>
+
 
         </div>
 
+
     @endif
+
 
 </div>
 

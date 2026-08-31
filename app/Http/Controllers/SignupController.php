@@ -2,13 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Customer;
-use App\Models\CustomerPhone;
-use App\Models\Groomer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class SignupController extends Controller
 {
@@ -50,13 +45,28 @@ class SignupController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | CHECK EMAIL ALREADY EXISTS
+        | Get Email
         |--------------------------------------------------------------------------
         */
 
         $email = trim($request->email);
 
-        if (User::where('Email', $email)->exists()) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Email Already Exists
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        |
+        */
+
+        $existingUser = DB::table('User')
+            ->where('Email', $email)
+            ->first();
+
+
+        if ($existingUser) {
 
             return back()
                 ->withInput()
@@ -100,6 +110,12 @@ class SignupController extends Controller
             ]);
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Begin Transaction
+            |--------------------------------------------------------------------------
+            */
+
             DB::beginTransaction();
 
             try {
@@ -110,30 +126,31 @@ class SignupController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $user = new User();
+                $userId = DB::table('User')
+                    ->insertGetId([
 
-                $user->Email = $email;
+                        'Email' =>
+                            $email,
 
-                $user->Password =
-                    Hash::make(
-                        $request->password
-                    );
+                        'Password' =>
+                            password_hash(
+                                $request->password,
+                                PASSWORD_DEFAULT
+                            ),
 
-                $user->Role = 'CUSTOMER';
+                        'Role' =>
+                            'CUSTOMER',
 
-                $user->save();
+                    ]);
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | 2. GET GENERATED USER ID
+                | 2. Check Generated User ID
                 |--------------------------------------------------------------------------
                 */
 
-                $customerId = $user->ID;
-
-
-                if (!$customerId) {
+                if (!$userId) {
 
                     throw new \Exception(
                         'User ID was not generated correctly.'
@@ -147,32 +164,35 @@ class SignupController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $customer = new Customer();
+                DB::table('Customer')
+                    ->insert([
 
-                $customer->ID = $customerId;
+                        'ID' =>
+                            $userId,
 
-                $customer->First_name =
-                    trim(
-                        $request->first_name
-                    );
+                        'First_name' =>
+                            trim(
+                                $request->first_name
+                            ),
 
-                $customer->Last_name =
-                    trim(
-                        $request->last_name
-                    );
+                        'Last_name' =>
+                            trim(
+                                $request->last_name
+                            ),
 
-                $customer->Address =
-                    trim(
-                        $request->address
-                    );
+                        'Address' =>
+                            trim(
+                                $request->address
+                            ),
 
-                /*
-                | New customers start with 0 loyalty points
-                */
+                        /*
+                        | New customers start with 0 loyalty points.
+                        */
 
-                $customer->Loyalty_Points = 0;
+                        'Loyalty_Points' =>
+                            0,
 
-                $customer->save();
+                    ]);
 
 
                 /*
@@ -188,8 +208,9 @@ class SignupController extends Controller
 
                     $phone = trim($phone);
 
+
                     /*
-                    | Ignore empty phone fields
+                    | Ignore empty phone fields.
                     */
 
                     if ($phone === '') {
@@ -197,30 +218,33 @@ class SignupController extends Controller
                     }
 
 
-                    $customerPhone =
-                        new CustomerPhone();
-
                     /*
-                    | Customer_Phone table:
+                    |--------------------------------------------------------------------------
+                    | Customer_Phone table
+                    |--------------------------------------------------------------------------
                     |
-                    | Phone_ID      -> AUTO_INCREMENT
-                    | Customer_ID   -> Customer ID
-                    | Phone_Number  -> Phone number
+                    | Phone_ID
+                    | Customer_ID
+                    | Phone_Number
+                    |
                     */
 
-                    $customerPhone->Customer_ID =
-                        $customerId;
+                    DB::table('Customer_Phone')
+                        ->insert([
 
-                    $customerPhone->Phone_Number =
-                        $phone;
+                            'Customer_ID' =>
+                                $userId,
 
-                    $customerPhone->save();
+                            'Phone_Number' =>
+                                $phone,
+
+                        ]);
                 }
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | 5. COMMIT TRANSACTION
+                | 5. Commit Transaction
                 |--------------------------------------------------------------------------
                 */
 
@@ -229,11 +253,8 @@ class SignupController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 6. SUCCESS MESSAGE
+                | 6. Success Message
                 |--------------------------------------------------------------------------
-                |
-                | Stay on signup page so the message is visible.
-                |
                 */
 
                 return redirect()
@@ -243,11 +264,12 @@ class SignupController extends Controller
                         'Customer account created successfully!'
                     );
 
+
             } catch (\Exception $e) {
 
                 /*
                 |--------------------------------------------------------------------------
-                | ROLLBACK
+                | Rollback
                 |--------------------------------------------------------------------------
                 */
 
@@ -295,6 +317,12 @@ class SignupController extends Controller
             ]);
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Begin Transaction
+            |--------------------------------------------------------------------------
+            */
+
             DB::beginTransaction();
 
             try {
@@ -305,30 +333,31 @@ class SignupController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $user = new User();
+                $userId = DB::table('User')
+                    ->insertGetId([
 
-                $user->Email = $email;
+                        'Email' =>
+                            $email,
 
-                $user->Password =
-                    Hash::make(
-                        $request->password
-                    );
+                        'Password' =>
+                            password_hash(
+                                $request->password,
+                                PASSWORD_DEFAULT
+                            ),
 
-                $user->Role = 'GROOMER';
+                        'Role' =>
+                            'GROOMER',
 
-                $user->save();
+                    ]);
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | 2. GET GENERATED USER ID
+                | 2. Check Generated User ID
                 |--------------------------------------------------------------------------
                 */
 
-                $groomerId = $user->ID;
-
-
-                if (!$groomerId) {
+                if (!$userId) {
 
                     throw new \Exception(
                         'User ID was not generated correctly.'
@@ -342,36 +371,38 @@ class SignupController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                $groomer = new Groomer();
+                DB::table('Groomer')
+                    ->insert([
 
-                $groomer->ID = $groomerId;
+                        'ID' =>
+                            $userId,
 
-                $groomer->Name =
-                    trim(
-                        $request->groomer_name
-                    );
+                        'Name' =>
+                            trim(
+                                $request->groomer_name
+                            ),
 
-                $groomer->Phone =
-                    trim(
-                        $request->phone
-                    );
+                        'Phone' =>
+                            trim(
+                                $request->phone
+                            ),
 
-                $groomer->Experience =
-                    $request->experience !== null
-                    ? (float) $request->experience
-                    : 0;
+                        'Experience' =>
+                            $request->experience !== null
+                                ? (float) $request->experience
+                                : 0,
 
-                $groomer->Specialization =
-                    trim(
-                        $request->specialization ?? ''
-                    );
+                        'Specialization' =>
+                            trim(
+                                $request->specialization ?? ''
+                            ),
 
-                $groomer->save();
+                    ]);
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | 4. COMMIT TRANSACTION
+                | 4. Commit Transaction
                 |--------------------------------------------------------------------------
                 */
 
@@ -380,7 +411,7 @@ class SignupController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | 5. SUCCESS MESSAGE
+                | 5. Success Message
                 |--------------------------------------------------------------------------
                 */
 
@@ -391,11 +422,12 @@ class SignupController extends Controller
                         'Groomer account created successfully!'
                     );
 
+
             } catch (\Exception $e) {
 
                 /*
                 |--------------------------------------------------------------------------
-                | ROLLBACK
+                | Rollback
                 |--------------------------------------------------------------------------
                 */
 
@@ -415,7 +447,7 @@ class SignupController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | INVALID ROLE
+        | Invalid Role
         |--------------------------------------------------------------------------
         */
 

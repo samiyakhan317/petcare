@@ -398,7 +398,6 @@
 
 <div class="summary-grid">
 
-
     <div class="summary-card">
 
         <h3>
@@ -459,7 +458,6 @@
 
 <div class="table-card">
 
-
     <div class="table-header">
 
         <h2>
@@ -483,49 +481,17 @@
 
                     <tr>
 
-                        <th>
-                            Payment ID
-                        </th>
-
-                        <th>
-                            Customer
-                        </th>
-
-                        <th>
-                            Pet
-                        </th>
-
-                        <th>
-                            Appointment
-                        </th>
-
-                        <th>
-                            Amount
-                        </th>
-
-                        <th>
-                            Loyalty Redeemed
-                        </th>
-
-                        <th>
-                            Discount
-                        </th>
-
-                        <th>
-                            Method
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                        <th>
-                            Payment Date
-                        </th>
-
-                        <th>
-                            Action
-                        </th>
+                        <th>Payment ID</th>
+                        <th>Customer</th>
+                        <th>Pet</th>
+                        <th>Appointment</th>
+                        <th>Amount</th>
+                        <th>Loyalty Redeemed</th>
+                        <th>Discount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Payment Date</th>
+                        <th>Action</th>
 
                     </tr>
 
@@ -538,23 +504,16 @@
 
                         <tr>
 
-
-                            {{-- =========================
-                                 PAYMENT ID
-                            ========================= --}}
+                            {{-- PAYMENT ID --}}
 
                             <td>
-
                                 <strong>
                                     #{{ $payment->Payment_ID }}
                                 </strong>
-
                             </td>
 
 
-                            {{-- =========================
-                                 CUSTOMER
-                            ========================= --}}
+                            {{-- CUSTOMER --}}
 
                             <td>
 
@@ -568,9 +527,7 @@
                                 @if(!empty($payment->Email))
 
                                     <div class="customer-email">
-
                                         {{ $payment->Email }}
-
                                     </div>
 
                                 @endif
@@ -578,9 +535,7 @@
                             </td>
 
 
-                            {{-- =========================
-                                 PET
-                            ========================= --}}
+                            {{-- PET --}}
 
                             <td>
 
@@ -594,9 +549,7 @@
                             </td>
 
 
-                            {{-- =========================
-                                 APPOINTMENT
-                            ========================= --}}
+                            {{-- APPOINTMENT --}}
 
                             <td>
 
@@ -623,9 +576,7 @@
                             </td>
 
 
-                            {{-- =========================
-                                 AMOUNT
-                            ========================= --}}
+                            {{-- AMOUNT --}}
 
                             <td>
 
@@ -642,14 +593,12 @@
                             </td>
 
 
-                            {{-- =========================
-                                 LOYALTY POINTS
-                            ========================= --}}
+                            {{-- LOYALTY POINTS --}}
 
                             <td>
 
                                 @if(
-                                    (int) $payment->Redeemed_Points > 0
+                                    (int) ($payment->Redeemed_Points ?? 0) > 0
                                 )
 
                                     <span class="points">
@@ -671,14 +620,12 @@
                             </td>
 
 
-                            {{-- =========================
-                                 LOYALTY DISCOUNT
-                            ========================= --}}
+                            {{-- LOYALTY DISCOUNT --}}
 
                             <td>
 
                                 @if(
-                                    (float) $payment->Loyalty_Discount > 0
+                                    (float) ($payment->Loyalty_Discount ?? 0) > 0
                                 )
 
                                     <span class="discount-amount">
@@ -702,9 +649,7 @@
                             </td>
 
 
-                            {{-- =========================
-                                 PAYMENT METHOD
-                            ========================= --}}
+                            {{-- PAYMENT METHOD --}}
 
                             <td>
 
@@ -715,9 +660,7 @@
                                 )
 
                                     <span class="badge badge-cash">
-
                                         💵 CASH
-
                                     </span>
 
                                 @else
@@ -736,9 +679,7 @@
                             </td>
 
 
-                            {{-- =========================
-                                 PAYMENT STATUS
-                            ========================= --}}
+                            {{-- PAYMENT STATUS --}}
 
                             <td>
 
@@ -749,9 +690,7 @@
                                 )
 
                                     <span class="badge badge-paid">
-
                                         ✓ PAID
-
                                     </span>
 
                                 @else
@@ -770,9 +709,7 @@
                             </td>
 
 
-                            {{-- =========================
-                                 PAYMENT DATE
-                            ========================= --}}
+                            {{-- PAYMENT DATE --}}
 
                             <td>
 
@@ -780,9 +717,7 @@
 
                                     {{ date(
                                         'd M Y',
-                                        strtotime(
-                                            $payment->Payment_Date
-                                        )
+                                        strtotime($payment->Payment_Date)
                                     ) }}
 
                                     <br>
@@ -791,9 +726,7 @@
 
                                         {{ date(
                                             'h:i A',
-                                            strtotime(
-                                                $payment->Payment_Date
-                                            )
+                                            strtotime($payment->Payment_Date)
                                         ) }}
 
                                     </small>
@@ -807,16 +740,11 @@
                             </td>
 
 
-                            {{-- =========================
-                                 ACTION
-                            ========================= --}}
+                            {{-- ACTION --}}
 
                             <td>
 
                                 <div class="action-buttons">
-
-
-                                    {{-- View Details --}}
 
                                     <a
                                         href="{{ route(
@@ -828,8 +756,6 @@
                                         👁 View Details
                                     </a>
 
-
-                                    {{-- Mark As Paid --}}
 
                                     @if(
                                         in_array(

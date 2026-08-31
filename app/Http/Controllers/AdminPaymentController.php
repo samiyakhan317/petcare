@@ -16,9 +16,7 @@ class AdminPaymentController extends Controller
     private function checkAdmin(Request $request)
     {
         if (!$request->session()->has('user_id')) {
-
-            return redirect()
-                ->route('login');
+            return redirect()->route('login');
         }
 
         if (
@@ -26,9 +24,7 @@ class AdminPaymentController extends Controller
                 $request->session()->get('role', '')
             ) !== 'ADMIN'
         ) {
-
-            return redirect()
-                ->route('home');
+            return redirect()->route('home');
         }
 
         return null;
@@ -43,12 +39,7 @@ class AdminPaymentController extends Controller
 
     public function index(Request $request)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Access Check
-        |--------------------------------------------------------------------------
-        */
-
+        // Check admin access
         $check = $this->checkAdmin($request);
 
         if ($check) {
@@ -58,8 +49,12 @@ class AdminPaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Get All Payment Information
+        | Get All Payments
         |--------------------------------------------------------------------------
+        |
+        | Query Builder is used.
+        | NO Eloquent ORM.
+        |
         */
 
         $payments = DB::table('Payment as p')
@@ -92,6 +87,12 @@ class AdminPaymentController extends Controller
                 'u.ID'
             )
 
+            /*
+            |--------------------------------------------------------------------------
+            | Loyalty Redeemed Points
+            |--------------------------------------------------------------------------
+            */
+
             ->leftJoin(
                 DB::raw("
                     (
@@ -104,7 +105,7 @@ class AdminPaymentController extends Controller
                         GROUP BY
                             Appointment_ID,
                             Customer_ID
-                    ) as lt
+                    ) AS lt
                 "),
                 function ($join) {
 
@@ -124,10 +125,7 @@ class AdminPaymentController extends Controller
 
             ->select([
 
-                /*
-                | Payment
-                */
-
+                // Payment
                 'p.Payment_ID',
                 'p.Appointment_ID',
                 'p.Payment_Status',
@@ -135,37 +133,21 @@ class AdminPaymentController extends Controller
                 'p.Payment_Method',
                 'p.Payment_Date',
 
-
-                /*
-                | Appointment
-                */
-
+                // Appointment
                 'a.Appointment_Date',
                 'a.Appointment_Time',
 
-
-                /*
-                | Pet
-                */
-
+                // Pet
                 'pet.Pet_ID',
                 'pet.Name as Pet_Name',
 
-
-                /*
-                | Customer
-                */
-
+                // Customer
                 'c.ID as Customer_ID',
                 'c.First_name',
                 'c.Last_name',
                 'u.Email',
 
-
-                /*
-                | Loyalty
-                */
-
+                // Loyalty
                 DB::raw(
                     'COALESCE(lt.Redeemed_Points, 0) AS Redeemed_Points'
                 ),
@@ -185,94 +167,49 @@ class AdminPaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Summary
+        | Calculate Summary
         |--------------------------------------------------------------------------
         */
 
-        $totalPayments =
-            $payments->count();
+        $totalPayments = $payments->count();
+
+        $totalAmount = 0;
+        $paidAmount = 0;
+        $unpaidAmount = 0;
+        $totalLoyaltyDiscount = 0;
 
 
-        $totalAmount =
-            $payments->sum(
-                function ($payment) {
+        foreach ($payments as $payment) {
 
-                    return (float)
-                        $payment->Total_Amount;
-                }
+            $amount = (float) ($payment->Total_Amount ?? 0);
+
+            $totalAmount += $amount;
+
+            $status = strtoupper(
+                $payment->Payment_Status ?? ''
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Paid Amount
-        |--------------------------------------------------------------------------
-        */
+            if ($status === 'PAID') {
 
-        $paidAmount =
-            $payments
-                ->filter(
-                    function ($payment) {
+                $paidAmount += $amount;
 
-                        return strtoupper(
-                            $payment->Payment_Status ?? ''
-                        ) === 'PAID';
-                    }
-                )
-                ->sum(
-                    function ($payment) {
-
-                        return (float)
-                            $payment->Total_Amount;
-                    }
-                );
+            }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Pending / Unpaid Amount
-        |--------------------------------------------------------------------------
-        */
+            if (
+                $status === 'UNPAID' ||
+                $status === 'PENDING'
+            ) {
 
-        $unpaidAmount =
-            $payments
-                ->filter(
-                    function ($payment) {
+                $unpaidAmount += $amount;
 
-                        return in_array(
-                            strtoupper(
-                                $payment->Payment_Status ?? ''
-                            ),
-                            [
-                                'UNPAID',
-                                'PENDING'
-                            ]
-                        );
-                    }
-                )
-                ->sum(
-                    function ($payment) {
-
-                        return (float)
-                            $payment->Total_Amount;
-                    }
-                );
+            }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Total Loyalty Discount
-        |--------------------------------------------------------------------------
-        */
-
-        $totalLoyaltyDiscount =
-            $payments->sum(
-                function ($payment) {
-
-                    return (float)
-                        $payment->Loyalty_Discount;
-                }
-            );
+            $totalLoyaltyDiscount +=
+                (float) ($payment->Loyalty_Discount ?? 0);
+        }
 
 
         /*
@@ -299,25 +236,14 @@ class AdminPaymentController extends Controller
     |--------------------------------------------------------------------------
     | Mark Payment As Paid
     |--------------------------------------------------------------------------
-    |
-    | Admin uses this for cash payments after receiving the money.
-    |
-    | PENDING / UNPAID
-    |        ↓
-    |      PAID
-    |
     */
 
     public function markAsPaid(
         Request $request,
         $paymentId
     ) {
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Access Check
-        |--------------------------------------------------------------------------
-        */
 
+        // Check admin access
         $check = $this->checkAdmin($request);
 
         if ($check) {
@@ -329,6 +255,9 @@ class AdminPaymentController extends Controller
         |--------------------------------------------------------------------------
         | Find Payment
         |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        |
         */
 
         $payment = DB::table('Payment')
@@ -358,7 +287,7 @@ class AdminPaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Check Current Status
+        | Check Existing Status
         |--------------------------------------------------------------------------
         */
 
@@ -399,7 +328,7 @@ class AdminPaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Success Message
+        | Success
         |--------------------------------------------------------------------------
         */
 
@@ -407,7 +336,9 @@ class AdminPaymentController extends Controller
             ->route('admin.payments')
             ->with(
                 'success',
-                'Payment #' . $paymentId . ' has been marked as PAID successfully.'
+                'Payment #' .
+                $paymentId .
+                ' has been marked as PAID successfully.'
             );
     }
 
@@ -422,12 +353,8 @@ class AdminPaymentController extends Controller
         Request $request,
         $paymentId
     ) {
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Access Check
-        |--------------------------------------------------------------------------
-        */
 
+        // Check admin access
         $check = $this->checkAdmin($request);
 
         if ($check) {
@@ -439,6 +366,10 @@ class AdminPaymentController extends Controller
         |--------------------------------------------------------------------------
         | Get Payment Details
         |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        | NO Eloquent ORM.
+        |
         */
 
         $payment = DB::table('Payment as p')
@@ -471,6 +402,12 @@ class AdminPaymentController extends Controller
                 'u.ID'
             )
 
+            /*
+            |--------------------------------------------------------------------------
+            | Loyalty Redeemed Points
+            |--------------------------------------------------------------------------
+            */
+
             ->leftJoin(
                 DB::raw("
                     (
@@ -483,7 +420,7 @@ class AdminPaymentController extends Controller
                         GROUP BY
                             Appointment_ID,
                             Customer_ID
-                    ) as lt
+                    ) AS lt
                 "),
                 function ($join) {
 
@@ -508,10 +445,7 @@ class AdminPaymentController extends Controller
 
             ->select([
 
-                /*
-                | Payment
-                */
-
+                // Payment
                 'p.Payment_ID',
                 'p.Appointment_ID',
                 'p.Payment_Status',
@@ -519,39 +453,23 @@ class AdminPaymentController extends Controller
                 'p.Payment_Method',
                 'p.Payment_Date',
 
-
-                /*
-                | Appointment
-                */
-
+                // Appointment
                 'a.Appointment_Date',
                 'a.Appointment_Time',
 
-
-                /*
-                | Pet
-                */
-
+                // Pet
                 'pet.Pet_ID',
                 'pet.Name as Pet_Name',
                 'pet.Breed',
 
-
-                /*
-                | Customer
-                */
-
+                // Customer
                 'c.ID as Customer_ID',
                 'c.First_name',
                 'c.Last_name',
                 'c.Address',
                 'u.Email',
 
-
-                /*
-                | Loyalty
-                */
-
+                // Loyalty
                 DB::raw(
                     'COALESCE(lt.Redeemed_Points, 0) AS Redeemed_Points'
                 ),
@@ -583,7 +501,7 @@ class AdminPaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Get Services For This Appointment
+        | Get Services For Appointment
         |--------------------------------------------------------------------------
         */
 
@@ -616,7 +534,7 @@ class AdminPaymentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Return Payment Details View
+        | Return View
         |--------------------------------------------------------------------------
         */
 

@@ -7,101 +7,249 @@ use Illuminate\Support\Facades\DB;
 
 class LoginController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Show Login Page
+    |--------------------------------------------------------------------------
+    */
+
     public function showLogin()
     {
         return view('login');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Login
+    |--------------------------------------------------------------------------
+    */
+
     public function login(Request $request)
     {
-        $email = trim($request->input('email'));
-        $password = $request->input('password');
-
-        if ($email === '' || $password === '') {
-            return back()->with(
-                'error',
-                'Please enter email and password.'
-            );
-        }
-
         /*
         |--------------------------------------------------------------------------
-        | Get user from database using RAW SQL
+        | Get Input
         |--------------------------------------------------------------------------
         */
 
-        $users = DB::select(
-            "SELECT ID, Email, Password, Role
-             FROM User
-             WHERE Email = ?
-             LIMIT 1",
-            [$email]
+        $email = trim(
+            $request->input('email', '')
         );
 
+        $password =
+            $request->input('password', '');
+
+
         /*
         |--------------------------------------------------------------------------
-        | Check if user exists
+        | Check Empty Fields
         |--------------------------------------------------------------------------
         */
 
-        if (empty($users)) {
-            return back()->with(
-                'error',
-                'Invalid email or password.'
-            );
+        if (
+            $email === '' ||
+            $password === ''
+        ) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Please enter email and password.'
+                );
         }
 
-        $user = $users[0];
 
         /*
         |--------------------------------------------------------------------------
-        | Check password
+        | Get User From Database
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder / DB only.
+        |
+        | NO Eloquent Model.
+        | NO User::where().
+        |
+        */
+
+        $user = DB::table('User')
+            ->where(
+                'Email',
+                $email
+            )
+            ->select(
+                'ID',
+                'Email',
+                'Password',
+                'Role'
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | User Not Found
         |--------------------------------------------------------------------------
         */
 
-        if (!password_verify($password, $user->Password)) {
-            return back()->with(
-                'error',
-                'Invalid email or password.'
-            );
+        if (!$user) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Invalid email or password.'
+                );
         }
+
 
         /*
         |--------------------------------------------------------------------------
-        | Create login session
+        | Check Password
         |--------------------------------------------------------------------------
+        |
+        | Passwords are stored using Hash::make()
+        | during signup/admin creation.
+        |
+        | password_verify() correctly checks
+        | those hashed passwords.
+        |
+        */
+
+        if (
+            !password_verify(
+                $password,
+                $user->Password
+            )
+        ) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Invalid email or password.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check User Role
+        |--------------------------------------------------------------------------
+        */
+
+        $role = strtoupper(
+            trim($user->Role ?? '')
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Role
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !in_array(
+                $role,
+                [
+                    'ADMIN',
+                    'CUSTOMER',
+                    'GROOMER'
+                ]
+            )
+        ) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Invalid user role.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Regenerate Session
+        |--------------------------------------------------------------------------
+        |
+        | Prevents session fixation after login.
+        |
         */
 
         $request->session()->regenerate();
 
-        session([
-            'user_id' => $user->ID,
-            'email'   => $user->Email,
-            'role'    => $user->Role
-        ]);
 
         /*
         |--------------------------------------------------------------------------
-        | Redirect based on role
+        | Store Login Information In Session
         |--------------------------------------------------------------------------
         */
 
-        if ($user->Role === 'ADMIN') {
-            return redirect()->route('admin.dashboard');
+        $request->session()->put([
+            'user_id' => $user->ID,
+            'email'   => $user->Email,
+            'role'    => $role
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Redirect Based On Role
+        |--------------------------------------------------------------------------
+        */
+
+        if ($role === 'ADMIN') {
+
+            return redirect()
+                ->route('admin.dashboard');
         }
 
-        /*if ($user->Role === 'GROOMER') {
-            return redirect('/groomer-dashboard');
-        }*/
 
-        return redirect()->route('home');
+        /*
+        |--------------------------------------------------------------------------
+        | CUSTOMER / GROOMER
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->route('home');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Logout
+    |--------------------------------------------------------------------------
+    */
 
     public function logout(Request $request)
     {
-        $request->session()->flush();
+        /*
+        |--------------------------------------------------------------------------
+        | Remove Session Data
+        |--------------------------------------------------------------------------
+        */
 
-        $request->session()->regenerate();
+        $request->session()->invalidate();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Regenerate CSRF Token
+        |--------------------------------------------------------------------------
+        */
+
+        $request->session()->regenerateToken();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Redirect To Login
+        |--------------------------------------------------------------------------
+        */
 
         return redirect('/login');
     }

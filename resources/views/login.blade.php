@@ -1,6 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>PetCare Login</title>
 
@@ -23,7 +28,7 @@
         }
 
         .login-box {
-            width: 400px;
+            width: 380px;
             background: white;
 
             padding: 35px;
@@ -36,35 +41,50 @@
 
         h1 {
             text-align: center;
-            margin-bottom: 30px;
+            color: #285b94;
+
+            margin-bottom: 25px;
         }
 
         label {
             display: block;
+
             margin-bottom: 7px;
+
             font-weight: bold;
         }
 
         input {
             width: 100%;
+
             padding: 12px;
 
             margin-bottom: 18px;
 
             border: 1px solid #ccc;
+
             border-radius: 5px;
 
             font-size: 15px;
         }
 
+        input:focus {
+            outline: none;
+
+            border-color: #3478c9;
+        }
+
         button {
             width: 100%;
+
             padding: 12px;
 
             border: none;
+
             border-radius: 5px;
 
-            background: #333;
+            background: #3478c9;
+
             color: white;
 
             font-size: 16px;
@@ -73,42 +93,42 @@
         }
 
         button:hover {
-            opacity: 0.85;
+            background: #285b94;
         }
-
-        /* ERROR MESSAGE */
 
         .error {
             background: #ffe0e0;
+
             color: #b00000;
 
             padding: 10px;
+
             margin-bottom: 20px;
 
             border-radius: 5px;
 
             text-align: center;
+
             font-size: 14px;
         }
-
-        /* SUCCESS MESSAGE */
 
         .success {
             background: #e0f7e9;
+
             color: #187a3d;
 
             padding: 10px;
+
             margin-bottom: 20px;
 
             border-radius: 5px;
 
             text-align: center;
+
             font-size: 14px;
         }
 
-        /* SIGNUP LINK */
-
-        .signup-link {
+        .signup {
             text-align: center;
 
             margin-top: 20px;
@@ -118,7 +138,7 @@
             font-size: 14px;
         }
 
-        .signup-link a {
+        .signup a {
             color: #3478c9;
 
             text-decoration: none;
@@ -126,13 +146,14 @@
             font-weight: bold;
         }
 
-        .signup-link a:hover {
+        .signup a:hover {
             text-decoration: underline;
         }
 
     </style>
 
 </head>
+
 
 <body>
 
@@ -141,54 +162,32 @@
     <h1>PetCare Login</h1>
 
 
-    <!-- =========================================
-         SUCCESS MESSAGE
-    ========================================== -->
-
-    @if(session('success'))
+    @if (session('success'))
 
         <div class="success">
-
             {{ session('success') }}
-
         </div>
 
     @endif
 
 
-    <!-- =========================================
-         ERROR MESSAGE
-    ========================================== -->
-
-    @if(session('error'))
+    @if (session('error'))
 
         <div class="error">
-
             {{ session('error') }}
-
         </div>
 
     @endif
 
 
-    <!-- =========================================
-         VALIDATION ERRORS
-    ========================================== -->
-
-    @if($errors->any())
+    @if ($errors->any())
 
         <div class="error">
-
             {{ $errors->first() }}
-
         </div>
 
     @endif
 
-
-    <!-- =========================================
-         LOGIN FORM
-    ========================================== -->
 
     <form
         method="POST"
@@ -197,8 +196,6 @@
 
         @csrf
 
-
-        <!-- EMAIL -->
 
         <label for="email">
             Email
@@ -214,8 +211,6 @@
         >
 
 
-        <!-- PASSWORD -->
-
         <label for="password">
             Password
         </label>
@@ -229,8 +224,6 @@
         >
 
 
-        <!-- LOGIN BUTTON -->
-
         <button type="submit">
             Login
         </button>
@@ -238,16 +231,12 @@
     </form>
 
 
-    <!-- =========================================
-         CREATE ACCOUNT
-    ========================================== -->
-
-    <div class="signup-link">
+    <div class="signup">
 
         Don't have an account?
 
         <a href="{{ route('signup') }}">
-            Create a new account
+            Create Account
         </a>
 
     </div>
@@ -255,4 +244,5 @@
 </div>
 
 </body>
+
 </html>

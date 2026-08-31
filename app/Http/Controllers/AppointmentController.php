@@ -2,10 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Appointment;
-use App\Models\Pet;
-use App\Models\Service;
-use App\Models\Groomer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -61,14 +57,127 @@ class AppointmentController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | Add Related Data To Appointment
+    |--------------------------------------------------------------------------
+    |
+    | We are NOT using Eloquent relationships here.
+    |
+    | Query Builder returns stdClass objects.
+    | We manually attach:
+    |
+    | - pet
+    | - groomer
+    | - services
+    | - payment
+    |
+    | This allows the existing Blade views to continue using:
+    |
+    | $appointment->pet
+    | $appointment->groomer
+    | $appointment->services
+    | $appointment->payment
+    |
+    */
+
+    private function attachAppointmentData($appointment)
+    {
+        if (!$appointment) {
+            return null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pet
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->pet = DB::table('pet')
+            ->where(
+                'Pet_ID',
+                $appointment->Pet_ID
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Groomer
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($appointment->Groomer_ID)) {
+
+            $appointment->groomer = DB::table('groomer')
+                ->where(
+                    'ID',
+                    $appointment->Groomer_ID
+                )
+                ->first();
+
+        } else {
+
+            $appointment->groomer = null;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Services
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->services = DB::table(
+            'Appointment_Service as aps'
+        )
+        ->join(
+            'Service as s',
+            'aps.Service_ID',
+            '=',
+            's.Service_ID'
+        )
+        ->where(
+            'aps.Appointment_ID',
+            $appointment->Appointment_ID
+        )
+        ->select(
+            's.Service_ID',
+            's.Service_Name',
+            's.Price',
+            's.Duration',
+            's.Description'
+        )
+        ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payment
+        |--------------------------------------------------------------------------
+        */
+
+        $appointment->payment = DB::table('payment')
+            ->where(
+                'Appointment_ID',
+                $appointment->Appointment_ID
+            )
+            ->first();
+
+
+        return $appointment;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Appointment List
     |--------------------------------------------------------------------------
     |
     | CUSTOMER:
-    | Shows only appointments belonging to the logged-in customer.
+    | Shows only appointments belonging to logged-in customer.
     |
     | GROOMER:
-    | Shows only appointments assigned to the logged-in groomer.
+    | Shows only appointments assigned to logged-in groomer.
     |
     | ADMIN:
     | Shows all appointments.
@@ -87,11 +196,21 @@ class AppointmentController extends Controller
             return redirect()->route('login');
         }
 
+
         $userId = $request->session()->get('user_id');
 
         $role = strtoupper(
             $request->session()->get('role', '')
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Base Appointment Query
+        |--------------------------------------------------------------------------
+        */
+
+        $query = DB::table('appointment');
 
 
         /*
@@ -102,37 +221,25 @@ class AppointmentController extends Controller
 
         if ($role === 'CUSTOMER') {
 
-            $appointments = Appointment::with([
-                'pet',
-                'groomer',
-                'services',
-                'payment'
-            ])
-            ->whereHas(
-                'pet',
-                function ($query) use ($userId) {
+            /*
+             * Customer can only see appointments
+             * belonging to their own pets.
+             */
 
-                    $query->where(
-                        'Customer_ID',
-                        $userId
-                    );
-                }
-            )
-            ->orderBy(
-                'Appointment_Date',
-                'desc'
-            )
-            ->orderBy(
-                'Appointment_Time',
-                'desc'
-            )
-            ->get();
-
-
-            return view(
-                'appointments.index',
-                compact('appointments')
-            );
+            $query
+                ->join(
+                    'pet',
+                    'appointment.Pet_ID',
+                    '=',
+                    'pet.Pet_ID'
+                )
+                ->where(
+                    'pet.Customer_ID',
+                    $userId
+                )
+                ->select(
+                    'appointment.*'
+                );
         }
 
 
@@ -142,33 +249,16 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($role === 'GROOMER') {
+        elseif ($role === 'GROOMER') {
 
-            $appointments = Appointment::with([
-                'pet',
-                'groomer',
-                'services',
-                'payment'
-            ])
-            ->where(
-                'Groomer_ID',
-                $userId
-            )
-            ->orderBy(
-                'Appointment_Date',
-                'desc'
-            )
-            ->orderBy(
-                'Appointment_Time',
-                'desc'
-            )
-            ->get();
-
-
-            return view(
-                'appointments.index',
-                compact('appointments')
-            );
+            $query
+                ->where(
+                    'Groomer_ID',
+                    $userId
+                )
+                ->select(
+                    'appointment.*'
+                );
         }
 
 
@@ -178,14 +268,33 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($role === 'ADMIN') {
+        elseif ($role === 'ADMIN') {
 
-            $appointments = Appointment::with([
-                'pet',
-                'groomer',
-                'services',
-                'payment'
-            ])
+            $query->select(
+                'appointment.*'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UNKNOWN ROLE
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            return redirect()->route('home');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Order Appointments
+        |--------------------------------------------------------------------------
+        */
+
+        $appointments = $query
             ->orderBy(
                 'Appointment_Date',
                 'desc'
@@ -197,20 +306,30 @@ class AppointmentController extends Controller
             ->get();
 
 
-            return view(
-                'appointments.index',
-                compact('appointments')
+        /*
+        |--------------------------------------------------------------------------
+        | Attach Related Data
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($appointments as $appointment) {
+
+            $this->attachAppointmentData(
+                $appointment
             );
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Unknown Role
+        | Return View
         |--------------------------------------------------------------------------
         */
 
-        return redirect()->route('home');
+        return view(
+            'appointments.index',
+            compact('appointments')
+        );
     }
 
 
@@ -244,7 +363,8 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $customerId = $request->session()->get('user_id');
+        $customerId =
+            $request->session()->get('user_id');
 
 
         /*
@@ -253,14 +373,15 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $pets = Pet::where(
-            'Customer_ID',
-            $customerId
-        )
-        ->orderBy(
-            'Name'
-        )
-        ->get();
+        $pets = DB::table('pet')
+            ->where(
+                'Customer_ID',
+                $customerId
+            )
+            ->orderBy(
+                'Name'
+            )
+            ->get();
 
 
         /*
@@ -269,14 +390,15 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $services = Service::where(
-            'Status',
-            'ACTIVE'
-        )
-        ->orderBy(
-            'Service_Name'
-        )
-        ->get();
+        $services = DB::table('service')
+            ->where(
+                'Status',
+                'ACTIVE'
+            )
+            ->orderBy(
+                'Service_Name'
+            )
+            ->get();
 
 
         /*
@@ -285,24 +407,17 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $groomers = Groomer::orderBy(
-            'Name'
-        )->get();
+        $groomers = DB::table('groomer')
+            ->orderBy(
+                'Name'
+            )
+            ->get();
 
 
         /*
         |--------------------------------------------------------------------------
         | Selected Service
         |--------------------------------------------------------------------------
-        |
-        | When customer clicks:
-        |
-        | "Book This Service"
-        |
-        | URL:
-        |
-        | /appointments/create?service_id=5
-        |
         */
 
         $selectedServiceId =
@@ -399,15 +514,16 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $pet = Pet::where(
-            'Pet_ID',
-            $validated['Pet_ID']
-        )
-        ->where(
-            'Customer_ID',
-            $customerId
-        )
-        ->first();
+        $pet = DB::table('pet')
+            ->where(
+                'Pet_ID',
+                $validated['Pet_ID']
+            )
+            ->where(
+                'Customer_ID',
+                $customerId
+            )
+            ->first();
 
 
         if (!$pet) {
@@ -427,15 +543,16 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $service = Service::where(
-            'Service_ID',
-            $validated['Service_ID']
-        )
-        ->where(
-            'Status',
-            'ACTIVE'
-        )
-        ->first();
+        $service = DB::table('service')
+            ->where(
+                'Service_ID',
+                $validated['Service_ID']
+            )
+            ->where(
+                'Status',
+                'ACTIVE'
+            )
+            ->first();
 
 
         if (!$service) {
@@ -455,10 +572,12 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $groomer = Groomer::where(
-            'ID',
-            $validated['Groomer_ID']
-        )->first();
+        $groomer = DB::table('groomer')
+            ->where(
+                'ID',
+                $validated['Groomer_ID']
+            )
+            ->first();
 
 
         if (!$groomer) {
@@ -478,25 +597,26 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $duplicate = Appointment::where(
-            'Pet_ID',
-            $validated['Pet_ID']
-        )
-        ->where(
-            'Appointment_Date',
-            $validated['Appointment_Date']
-        )
-        ->where(
-            'Appointment_Time',
-            $validated['Appointment_Time']
-        )
-        ->whereNotIn(
-            'Status',
-            [
-                'CANCELLED'
-            ]
-        )
-        ->exists();
+        $duplicate = DB::table('appointment')
+            ->where(
+                'Pet_ID',
+                $validated['Pet_ID']
+            )
+            ->where(
+                'Appointment_Date',
+                $validated['Appointment_Date']
+            )
+            ->where(
+                'Appointment_Time',
+                $validated['Appointment_Time']
+            )
+            ->whereNotIn(
+                'Status',
+                [
+                    'CANCELLED'
+                ]
+            )
+            ->exists();
 
 
         if ($duplicate) {
@@ -520,24 +640,30 @@ class AppointmentController extends Controller
 
         try {
 
-            $appointment = Appointment::create([
+            /*
+             * insertGetId() returns the newly created
+             * Appointment_ID.
+             */
 
-                'Pet_ID' =>
-                    $validated['Pet_ID'],
+            $appointmentId = DB::table('appointment')
+                ->insertGetId([
 
-                'Groomer_ID' =>
-                    $validated['Groomer_ID'],
+                    'Pet_ID' =>
+                        $validated['Pet_ID'],
 
-                'Appointment_Date' =>
-                    $validated['Appointment_Date'],
+                    'Groomer_ID' =>
+                        $validated['Groomer_ID'],
 
-                'Appointment_Time' =>
-                    $validated['Appointment_Time'],
+                    'Appointment_Date' =>
+                        $validated['Appointment_Date'],
 
-                'Status' =>
-                    'PENDING',
+                    'Appointment_Time' =>
+                        $validated['Appointment_Time'],
 
-            ]);
+                    'Status' =>
+                        'PENDING',
+
+                ]);
 
 
             /*
@@ -547,11 +673,11 @@ class AppointmentController extends Controller
             */
 
             DB::table(
-                'Appointment_Service'
+                'appointment_service'
             )->insert([
 
                 'Appointment_ID' =>
-                    $appointment->Appointment_ID,
+                    $appointmentId,
 
                 'Service_ID' =>
                     $validated['Service_ID'],
@@ -559,12 +685,18 @@ class AppointmentController extends Controller
             ]);
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Commit Transaction
+            |--------------------------------------------------------------------------
+            */
+
             DB::commit();
 
 
             /*
             |--------------------------------------------------------------------------
-            | REDIRECT TO PAYMENT PAGE
+            | Redirect To Payment
             |--------------------------------------------------------------------------
             */
 
@@ -573,7 +705,7 @@ class AppointmentController extends Controller
                     'payments.create',
                     [
                         'appointmentId' =>
-                            $appointment->Appointment_ID
+                            $appointmentId
                     ]
                 );
 
@@ -634,17 +766,12 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $appointment = Appointment::with([
-            'pet',
-            'groomer',
-            'services',
-            'payment'
-        ])
-        ->where(
-            'Appointment_ID',
-            $id
-        )
-        ->first();
+        $appointment = DB::table('appointment')
+            ->where(
+                'Appointment_ID',
+                $id
+            )
+            ->first();
 
 
         /*
@@ -662,6 +789,17 @@ class AppointmentController extends Controller
                     'Appointment not found.'
                 );
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Add Pet, Groomer, Services and Payment
+        |--------------------------------------------------------------------------
+        */
+
+        $this->attachAppointmentData(
+            $appointment
+        );
 
 
         /*
@@ -694,7 +832,7 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($role === 'GROOMER') {
+        elseif ($role === 'GROOMER') {
 
             if (
                 (int) $appointment->Groomer_ID !==
@@ -717,7 +855,7 @@ class AppointmentController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($role === 'ADMIN') {
+        elseif ($role === 'ADMIN') {
 
             // Admin can view all appointments.
         }
@@ -725,23 +863,35 @@ class AppointmentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Unknown Role
+        | UNKNOWN ROLE
         |--------------------------------------------------------------------------
         */
 
-        if (
-            !in_array(
-                $role,
-                [
-                    'CUSTOMER',
-                    'GROOMER',
-                    'ADMIN'
-                ]
-            )
-        ) {
+        else {
 
             return redirect()->route('home');
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Grooming Report
+        |--------------------------------------------------------------------------
+        |
+        | The show.blade.php already expects:
+        |
+        | $report
+        |
+        | So we retrieve it here using Query Builder.
+        |
+        */
+
+        $report = DB::table('grooming_report')
+            ->where(
+                'Appointment_ID',
+                $appointment->Appointment_ID
+            )
+            ->first();
 
 
         /*
@@ -752,7 +902,10 @@ class AppointmentController extends Controller
 
         return view(
             'appointments.show',
-            compact('appointment')
+            compact(
+                'appointment',
+                'report'
+            )
         );
     }
 
@@ -796,26 +949,32 @@ class AppointmentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Find Customer Appointment
+        | Find Appointment
         |--------------------------------------------------------------------------
+        |
+        | We use a JOIN instead of Eloquent whereHas().
+        |
         */
 
-        $appointment = Appointment::where(
-            'Appointment_ID',
-            $id
-        )
-        ->whereHas(
-            'pet',
-            function ($query) use ($customerId) {
-
-                $query->where(
-                    'Customer_ID',
-                    $customerId
-                );
-
-            }
-        )
-        ->first();
+        $appointment = DB::table('appointment')
+            ->join(
+                'pet',
+                'appointment.Pet_ID',
+                '=',
+                'pet.Pet_ID'
+            )
+            ->where(
+                'appointment.Appointment_ID',
+                $id
+            )
+            ->where(
+                'pet.Customer_ID',
+                $customerId
+            )
+            ->select(
+                'appointment.*'
+            )
+            ->first();
 
 
         /*
@@ -858,14 +1017,42 @@ class AppointmentController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Prevent Cancelling Completed Appointment
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $appointment->Status
+            ) === 'COMPLETED'
+        ) {
+
+            return redirect()
+                ->route('appointments.index')
+                ->with(
+                    'error',
+                    'Completed appointments cannot be cancelled.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Cancel Appointment
         |--------------------------------------------------------------------------
         */
 
-        $appointment->Status =
-            'CANCELLED';
+        DB::table('appointment')
+            ->where(
+                'Appointment_ID',
+                $id
+            )
+            ->update([
 
-        $appointment->save();
+                'Status' =>
+                    'CANCELLED'
+
+            ]);
 
 
         /*

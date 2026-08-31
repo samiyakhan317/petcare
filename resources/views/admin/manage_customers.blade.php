@@ -1,630 +1,618 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.app')
 
-<head>
+@section('title', 'Manage Customers')
 
-    <meta charset="UTF-8">
+@section('content')
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
 
-    <title>PetCare - Manage Customers</title>
+    .customers-page {
+        padding: 30px 0;
+    }
 
-    <style>
+    .customers-container {
+        width: 100%;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    /* =========================
+       HEADER
+    ========================= */
 
-        body {
-            font-family: Arial, sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(
-                135deg,
-                #e8f4ff,
-                #f7fbff,
-                #dff3f0
-            );
-            padding: 40px;
-        }
+    .customers-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
 
-        .container {
-            max-width: 1100px;
-            margin: auto;
-        }
+    .customers-header h1 {
+        color: #222;
+        font-size: 28px;
+    }
 
-        h1 {
-            color: #285b94;
-            margin-bottom: 10px;
-        }
+    .add-btn {
+        background: #1a631a;
+        color: white;
+        padding: 10px 18px;
+        border: none;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: bold;
+    }
 
-        .subtitle {
-            color: #777;
-            margin-bottom: 20px;
-        }
+    .add-btn:hover {
+        background: #145014;
+    }
 
-        /* =========================
-           ALERTS
-        ========================== */
 
-        .alert {
-            padding: 12px 18px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
+    /* =========================
+       FORM
+    ========================= */
 
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
+    .form-box {
+        display: none;
+        background: white;
+        padding: 25px;
+        margin-bottom: 25px;
+        border-radius: 12px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    }
 
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+    .form-box h2 {
+        margin-bottom: 20px;
+        color: #333;
+    }
 
-        /* =========================
-           ADD CUSTOMER FORM
-        ========================== */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
 
-        .form-container {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
 
-            box-shadow:
-                0 10px 30px
-                rgba(0, 0, 0, 0.1);
-        }
+    .form-group.full {
+        grid-column: 1 / 3;
+    }
 
-        .form-container h2 {
-            color: #285b94;
-            margin-bottom: 20px;
-        }
+    .form-group label {
+        margin-bottom: 7px;
+        font-weight: bold;
+        color: #333;
+    }
 
-        .add-form {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+    .form-group input {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 14px;
+        width: 100%;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #285b94;
+    }
+
+
+    /* =========================
+       PHONE NUMBERS
+    ========================= */
+
+    .phone-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    .phone-row input {
+        flex: 1;
+    }
+
+    .add-phone {
+        margin-top: 8px;
+        background: #285b94;
+        color: white;
+        border: none;
+        padding: 9px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .add-phone:hover {
+        background: #1d426b;
+    }
+
+    .remove-phone {
+        background: #990e23;
+        color: white;
+        border: none;
+        padding: 9px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .remove-phone:hover {
+        background: #750b1a;
+    }
+
+
+    /* =========================
+       FORM BUTTONS
+    ========================= */
+
+    .form-actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .save-btn {
+        background: #1a631a;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .save-btn:hover {
+        background: #145014;
+    }
+
+    .cancel-btn {
+        background: #777;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .cancel-btn:hover {
+        background: #555;
+    }
+
+
+    /* =========================
+       TABLE
+    ========================= */
+
+    .table-box {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: #333;
+        color: white;
+        padding: 13px;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 13px;
+        border-bottom: 1px solid #ddd;
+        color: #333;
+        vertical-align: top;
+    }
+
+    tr:hover {
+        background: #f7f7f7;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 25px;
+        color: #777;
+    }
+
+
+    /* =========================
+       MESSAGES
+    ========================= */
+
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 12px 15px;
+        border-radius: 7px;
+        margin-bottom: 20px;
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px 15px;
+        border-radius: 7px;
+        margin-bottom: 20px;
+    }
+
+    .validation-errors {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px 20px;
+        border-radius: 7px;
+        margin-bottom: 20px;
+    }
+
+    .validation-errors ul {
+        margin-top: 8px;
+        padding-left: 20px;
+    }
+
+
+    /* =========================
+       DELETE BUTTON
+    ========================= */
+
+    .delete-btn {
+        background: #990e23;
+        color: white;
+        border: none;
+        padding: 7px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .delete-btn:hover {
+        background: #750b1a;
+    }
+
+
+    /* =========================
+       PHONE DISPLAY
+    ========================= */
+
+    .phone-display {
+        margin-bottom: 4px;
+    }
+
+
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media (max-width: 700px) {
+
+        .customers-header {
+            flex-direction: column;
+            align-items: flex-start;
             gap: 15px;
         }
 
-        .form-group {
-            width: 100%;
+        .form-grid {
+            grid-template-columns: 1fr;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: #444;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .add-form input {
-            width: 100%;
-            padding: 11px 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 0.95rem;
-        }
-
-        .add-form input:focus {
-            outline: none;
-            border-color: #3478c9;
-        }
-
-        /* =========================
-           PHONE SECTION
-        ========================== */
-
-        .phone-section {
-            grid-column: 1 / -1;
-            margin-top: 5px;
-        }
-
-        .phone-section label {
-            display: block;
-            margin-bottom: 8px;
-            color: #444;
-            font-weight: bold;
-        }
-
-        .phone-note {
-            font-size: 0.85rem;
-            color: #777;
-            margin-bottom: 10px;
+        .form-group.full {
+            grid-column: 1;
         }
 
         .phone-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .phone-row input {
-            flex: 1;
+            flex-direction: column;
         }
 
         .remove-phone {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 0 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .remove-phone:hover {
-            background: #c0392b;
-        }
-
-        .add-phone {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 9px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 3px;
-        }
-
-        .add-phone:hover {
-            background: #545b62;
-        }
-
-        /* =========================
-           ADD BUTTON
-        ========================== */
-
-        .add-button-container {
-            grid-column: 1 / -1;
-        }
-
-        .btn-add {
-            background: #3478c9;
-            color: white;
-            border: none;
-            padding: 11px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .btn-add:hover {
-            background: #285b94;
-        }
-
-        /* =========================
-           CUSTOMER TABLE
-        ========================== */
-
-        .table-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-
-            box-shadow:
-                0 10px 30px
-                rgba(0, 0, 0, 0.1);
-
-            overflow-x: auto;
-        }
-
-        .table-title {
-            color: #285b94;
-            margin-bottom: 15px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: #3478c9;
-            color: white;
-            padding: 14px;
-            text-align: left;
-        }
-
-        td {
-            padding: 14px;
-            border-bottom: 1px solid #eee;
-            color: #444;
-            vertical-align: top;
-        }
-
-        tr:hover {
-            background: #f7fbff;
-        }
-
-        /* =========================
-           PHONE DISPLAY
-        ========================== */
-
-        .phone-list {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .phone-item {
-            background: #f1f3f5;
-            padding: 5px 8px;
-            border-radius: 5px;
             width: fit-content;
         }
 
-        .no-phone {
-            color: #999;
-            font-style: italic;
-        }
+    }
 
-        /* =========================
-           DELETE BUTTON
-        ========================== */
+</style>
 
-        .btn-delete {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
+<div class="customers-page">
 
-        .btn-delete:hover {
-            background: #c0392b;
-        }
-
-        /* =========================
-           BACK BUTTON
-        ========================== */
-
-        .back {
-            display: inline-block;
-            margin-top: 25px;
-            padding: 11px 20px;
-            background: #3478c9;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-        }
-
-        .back:hover {
-            background: #285b94;
-        }
-
-        /* =========================
-           EMPTY
-        ========================== */
-
-        .empty {
-            text-align: center;
-            padding: 30px;
-            color: #777;
-        }
-
-        /* =========================
-           RESPONSIVE
-        ========================== */
-
-        @media (max-width: 700px) {
-
-            body {
-                padding: 20px;
-            }
-
-            .add-form {
-                grid-template-columns: 1fr;
-            }
-
-            .phone-row {
-                flex-direction: column;
-            }
-
-            .remove-phone {
-                padding: 8px;
-            }
-
-            table {
-                font-size: 13px;
-            }
-
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-    <h1>Manage Customers</h1>
-
-    <p class="subtitle">
-        View and manage registered PetCare customers.
-    </p>
+```
+<div class="customers-container">
 
 
-    {{-- =========================
+    <!-- =========================
+         HEADER
+    ========================== -->
+
+    <div class="customers-header">
+
+        <h1>
+            Customer List
+        </h1>
+
+        <button
+            type="button"
+            class="add-btn"
+            onclick="showCustomerForm()"
+        >
+            + Add Customer
+        </button>
+
+    </div>
+
+
+    <!-- =========================
          SUCCESS MESSAGE
-    ========================== --}}
+    ========================== -->
 
     @if(session('success'))
 
-        <div class="alert alert-success">
+        <div class="success-message">
             {{ session('success') }}
         </div>
 
     @endif
 
 
-    {{-- =========================
+    <!-- =========================
          ERROR MESSAGE
-    ========================== --}}
+    ========================== -->
 
     @if(session('error'))
 
-        <div class="alert alert-error">
+        <div class="error-message">
             {{ session('error') }}
         </div>
 
     @endif
 
 
-    {{-- =========================
+    <!-- =========================
          VALIDATION ERRORS
-    ========================== --}}
+    ========================== -->
 
     @if($errors->any())
 
-        <div class="alert alert-error">
+        <div class="validation-errors">
 
-            @foreach($errors->all() as $error)
+            <strong>
+                Please fix the following errors:
+            </strong>
 
-                <div>
-                    {{ $error }}
-                </div>
+            <ul>
 
-            @endforeach
+                @foreach($errors->all() as $error)
+
+                    <li>
+                        {{ $error }}
+                    </li>
+
+                @endforeach
+
+            </ul>
 
         </div>
 
     @endif
 
 
-    {{-- =========================
-         ADD NEW CUSTOMER
-    ========================== --}}
+    <!-- =========================
+         ADD CUSTOMER FORM
+    ========================== -->
 
-    <div class="form-container">
+    <div
+        class="form-box"
+        id="customerForm"
+    >
 
-        <h2>Add New Customer</h2>
+        <h2>
+            Add New Customer
+        </h2>
+
 
         <form
-            method="POST"
             action="{{ route('admin.customers.store') }}"
-            class="add-form"
+            method="POST"
         >
 
             @csrf
 
 
-            {{-- First Name --}}
-
-            <div class="form-group">
-
-                <label>
-                    First Name
-                </label>
-
-                <input
-                    type="text"
-                    name="first_name"
-                    placeholder="Enter first name"
-                    value="{{ old('first_name') }}"
-                    required
-                >
-
-            </div>
+            <div class="form-grid">
 
 
-            {{-- Last Name --}}
+                <!-- FIRST NAME -->
 
-            <div class="form-group">
+                <div class="form-group">
 
-                <label>
-                    Last Name
-                </label>
+                    <label>
+                        First Name
+                    </label>
 
-                <input
-                    type="text"
-                    name="last_name"
-                    placeholder="Enter last name"
-                    value="{{ old('last_name') }}"
-                    required
-                >
+                    <input
+                        type="text"
+                        name="first_name"
+                        value="{{ old('first_name') }}"
+                        placeholder="Enter first name"
+                        required
+                    >
 
-            </div>
-
-
-            {{-- Email --}}
-
-            <div class="form-group">
-
-                <label>
-                    Email
-                </label>
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter email"
-                    value="{{ old('email') }}"
-                    required
-                >
-
-            </div>
-
-
-            {{-- Address --}}
-
-            <div class="form-group">
-
-                <label>
-                    Address
-                </label>
-
-                <input
-                    type="text"
-                    name="address"
-                    placeholder="Enter address"
-                    value="{{ old('address') }}"
-                    required
-                >
-
-            </div>
-
-
-            {{-- Password --}}
-
-            <div class="form-group">
-
-                <label>
-                    Password
-                </label>
-
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Exactly 8 characters"
-                    minlength="8"
-                    maxlength="8"
-                    required
-                >
-
-            </div>
-
-
-            {{-- =========================
-                 PHONE NUMBERS
-            ========================== --}}
-
-            <div class="phone-section">
-
-                <label>
-                    Phone Numbers
-                </label>
-
-                <div class="phone-note">
-                    At least one phone number is required. You can add multiple phone numbers.
                 </div>
 
 
-                <div id="phone-container">
+                <!-- LAST NAME -->
 
-                    {{-- First Phone Number --}}
+                <div class="form-group">
 
-                    <div class="phone-row">
+                    <label>
+                        Last Name
+                    </label>
 
-                        <input
-                            type="text"
-                            name="phone_numbers[]"
-                            placeholder="Enter phone number"
-                            value="{{ old('phone_numbers.0') }}"
-                            required
-                        >
+                    <input
+                        type="text"
+                        name="last_name"
+                        value="{{ old('last_name') }}"
+                        placeholder="Enter last name"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- EMAIL -->
+
+                <div class="form-group">
+
+                    <label>
+                        Email
+                    </label>
+
+                    <input
+                        type="email"
+                        name="email"
+                        value="{{ old('email') }}"
+                        placeholder="Enter email"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- PASSWORD -->
+
+                <div class="form-group">
+
+                    <label>
+                        Password
+                    </label>
+
+                    <input
+                        type="password"
+                        name="password"
+                        minlength="8"
+                        maxlength="8"
+                        placeholder="Exactly 8 characters"
+                        required
+                    >
+
+                    <small style="margin-top:5px;color:#777;">
+                        Password must be exactly 8 characters.
+                    </small>
+
+                </div>
+
+
+                <!-- ADDRESS -->
+
+                <div class="form-group full">
+
+                    <label>
+                        Address
+                    </label>
+
+                    <input
+                        type="text"
+                        name="address"
+                        value="{{ old('address') }}"
+                        placeholder="Enter address"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- =========================
+                     PHONE NUMBERS
+                ========================== -->
+
+                <div class="form-group full">
+
+                    <label>
+                        Phone Numbers
+                    </label>
+
+
+                    <div id="phoneContainer">
+
+
+                        <!-- FIRST PHONE -->
+
+                        <div class="phone-row">
+
+                            <input
+                                type="text"
+                                name="phone_numbers[]"
+                                placeholder="Enter phone number"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="remove-phone"
+                                onclick="removePhone(this)"
+                            >
+                                Remove
+                            </button>
+
+                        </div>
+
 
                     </div>
 
-                    {{-- If validation returns multiple phones, show them --}}
 
-                    @if(old('phone_numbers'))
-
-                        @foreach(old('phone_numbers') as $index => $oldPhone)
-
-                            @if($index > 0)
-
-                                <div class="phone-row">
-
-                                    <input
-                                        type="text"
-                                        name="phone_numbers[]"
-                                        placeholder="Enter phone number"
-                                        value="{{ $oldPhone }}"
-                                    >
-
-                                    <button
-                                        type="button"
-                                        class="remove-phone"
-                                        onclick="removePhone(this)"
-                                    >
-                                        Remove
-                                    </button>
-
-                                </div>
-
-                            @endif
-
-                        @endforeach
-
-                    @endif
+                    <button
+                        type="button"
+                        class="add-phone"
+                        onclick="addPhone()"
+                    >
+                        + Add Another Phone
+                    </button>
 
                 </div>
 
 
-                <button
-                    type="button"
-                    class="add-phone"
-                    onclick="addPhone()"
-                >
-                    + Add Another Phone
-                </button>
-
             </div>
 
 
-            {{-- =========================
-                 ADD CUSTOMER BUTTON
-            ========================== --}}
+            <!-- =========================
+                 FORM BUTTONS
+            ========================== -->
 
-            <div class="add-button-container">
+            <div class="form-actions">
 
                 <button
                     type="submit"
-                    class="btn-add"
+                    class="save-btn"
                 >
                     Add Customer
                 </button>
 
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="hideCustomerForm()"
+                >
+                    Cancel
+                </button>
+
             </div>
+
 
         </form>
 
     </div>
 
 
-    {{-- =========================
-         CUSTOMER LIST
-    ========================== --}}
+    <!-- =========================
+         CUSTOMER TABLE
+    ========================== -->
 
-    <div class="table-container">
-
-        <h2 class="table-title">
-            Customer List
-        </h2>
-
+    <div class="table-box">
 
         <table>
 
@@ -632,21 +620,41 @@
 
                 <tr>
 
-                    <th>ID</th>
+                    <th>
+                        ID
+                    </th>
 
-                    <th>First Name</th>
+                    <th>
+                        First Name
+                    </th>
 
-                    <th>Last Name</th>
+                    <th>
+                        Last Name
+                    </th>
 
-                    <th>Email</th>
+                    <th>
+                        Email
+                    </th>
 
-                    <th>Address</th>
+                    <th>
+                        Address
+                    </th>
 
-                    <th>Phone Numbers</th>
+                    <th>
+                        Phone Numbers
+                    </th>
 
-                    <th>Registered Pets</th>
+                    <th>
+                        Pets
+                    </th>
 
-                    <th>Actions</th>
+                    <th>
+                        Loyalty Points
+                    </th>
+
+                    <th>
+                        Action
+                    </th>
 
                 </tr>
 
@@ -655,74 +663,65 @@
 
             <tbody>
 
+
                 @forelse($customers as $customer)
 
                     <tr>
 
-                        {{-- ID --}}
+
+                        <!-- ID -->
 
                         <td>
                             {{ $customer->ID }}
                         </td>
 
 
-                        {{-- First Name --}}
+                        <!-- FIRST NAME -->
 
                         <td>
-                            {{ $customer->customer->First_name ?? 'N/A' }}
+                            {{ $customer->First_name }}
                         </td>
 
 
-                        {{-- Last Name --}}
+                        <!-- LAST NAME -->
 
                         <td>
-                            {{ $customer->customer->Last_name ?? 'N/A' }}
+                            {{ $customer->Last_name }}
                         </td>
 
 
-                        {{-- Email --}}
+                        <!-- EMAIL -->
 
                         <td>
                             {{ $customer->Email }}
                         </td>
 
 
-                        {{-- Address --}}
+                        <!-- ADDRESS -->
 
                         <td>
-                            {{ $customer->customer->Address ?? 'N/A' }}
+                            {{ $customer->Address }}
                         </td>
 
 
-                        {{-- Phone Numbers --}}
+                        <!-- PHONE NUMBERS -->
 
                         <td>
 
-                            @if(
-                                $customer->customer &&
-                                $customer->customer->phoneNumbers &&
-                                $customer->customer->phoneNumbers->count() > 0
-                            )
+                            @if($customer->phoneNumbers->count() > 0)
 
-                                <div class="phone-list">
+                                @foreach($customer->phoneNumbers as $phone)
 
-                                    @foreach(
-                                        $customer->customer->phoneNumbers
-                                        as $phone
-                                    )
+                                    <div class="phone-display">
+                                        {{ $phone->Phone_Number }}
+                                    </div>
 
-                                        <span class="phone-item">
-                                            {{ $phone->Phone_Number }}
-                                        </span>
-
-                                    @endforeach
-
-                                </div>
+                                @endforeach
 
                             @else
 
-                                <span class="no-phone">
-                                    No phone number
+                                <span>
+                                    No phone
                                 </span>
 
                             @endif
@@ -730,26 +729,27 @@
                         </td>
 
 
-                        {{-- Registered Pets --}}
+                        <!-- PET COUNT -->
 
                         <td>
-
-                            <strong>
-                                {{ $customer->pets_count }}
-                            </strong>
-
+                            {{ $customer->pets_count }}
                         </td>
 
 
-                        {{-- Delete --}}
+                        <!-- LOYALTY POINTS -->
+
+                        <td>
+                            {{ $customer->Loyalty_Points }}
+                        </td>
+
+
+                        <!-- DELETE -->
 
                         <td>
 
                             <form
-                                method="POST"
                                 action="{{ route('admin.customers.destroy', $customer->ID) }}"
-                                onsubmit="return confirm('Are you sure you want to delete this customer?');"
-                                style="display: inline;"
+                                method="POST"
                             >
 
                                 @csrf
@@ -758,7 +758,8 @@
 
                                 <button
                                     type="submit"
-                                    class="btn-delete"
+                                    class="delete-btn"
+                                    onclick="return confirm('Are you sure you want to delete this customer?')"
                                 >
                                     Delete
                                 </button>
@@ -767,6 +768,7 @@
 
                         </td>
 
+
                     </tr>
 
                 @empty
@@ -774,8 +776,8 @@
                     <tr>
 
                         <td
-                            colspan="8"
-                            class="empty"
+                            colspan="9"
+                            class="empty-message"
                         >
                             No customers found.
                         </td>
@@ -784,6 +786,7 @@
 
                 @endforelse
 
+
             </tbody>
 
         </table>
@@ -791,37 +794,56 @@
     </div>
 
 
-    {{-- =========================
-         BACK TO DASHBOARD
-    ========================== --}}
-
-    <a
-        href="{{ route('admin.dashboard') }}"
-        class="back"
-    >
-        ← Back to Dashboard
-    </a>
+</div>
+```
 
 </div>
 
-
-{{-- =========================
+<!-- =========================
      JAVASCRIPT
-========================== --}}
+========================= -->
 
 <script>
+
+    function showCustomerForm() {
+
+        const form =
+            document.getElementById('customerForm');
+
+        form.style.display = 'block';
+
+        form.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+    }
+
+
+    function hideCustomerForm() {
+
+        const form =
+            document.getElementById('customerForm');
+
+        form.style.display = 'none';
+
+    }
+
 
     function addPhone() {
 
         const container =
-            document.getElementById('phone-container');
+            document.getElementById('phoneContainer');
 
-        const phoneRow =
+
+        const row =
             document.createElement('div');
 
-        phoneRow.className = 'phone-row';
+        row.className = 'phone-row';
 
-        phoneRow.innerHTML = `
+
+        row.innerHTML = `
+
             <input
                 type="text"
                 name="phone_numbers[]"
@@ -835,22 +857,37 @@
             >
                 Remove
             </button>
+
         `;
 
-        container.appendChild(phoneRow);
+
+        container.appendChild(row);
+
     }
 
 
     function removePhone(button) {
 
-        const row = button.parentElement;
+        const container =
+            document.getElementById('phoneContainer');
 
-        row.remove();
+        const rows =
+            container.querySelectorAll('.phone-row');
+
+
+        /*
+         * Always keep at least
+         * one phone number field.
+         */
+
+        if (rows.length > 1) {
+
+            button.parentElement.remove();
+
+        }
 
     }
 
 </script>
 
-</body>
-
-</html>
+@endsection

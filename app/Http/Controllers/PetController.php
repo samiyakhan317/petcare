@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PetController extends Controller
@@ -16,26 +16,62 @@ class PetController extends Controller
 
     public function index(Request $request)
     {
-        // Check login
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Customer only
-        if (strtoupper($request->session()->get('role')) !== 'CUSTOMER') {
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
+        ) {
             return redirect()->route('home');
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Customer ID
+        |--------------------------------------------------------------------------
+        */
+
         $customerId = $request->session()->get('user_id');
 
-        // Get only pets belonging to logged-in customer
-        $pets = Pet::where('Customer_ID', $customerId)
-            ->orderBy('Pet_ID', 'desc')
+        /*
+        |--------------------------------------------------------------------------
+        | Get Customer's Pets
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder is used.
+        | No Eloquent ORM is used.
+        |
+        */
+
+        $pets = DB::table('pet')
+            ->where(
+                'Customer_ID',
+                $customerId
+            )
+            ->orderBy(
+                'Pet_ID',
+                'desc'
+            )
             ->get();
 
         /*
         |--------------------------------------------------------------------------
-        | Calculate Age from Date of Birth
+        | Calculate Age
         |--------------------------------------------------------------------------
         */
 
@@ -43,17 +79,25 @@ class PetController extends Controller
 
             if (!empty($pet->DOB)) {
 
-                $pet->calculated_age = Carbon::parse($pet->DOB)
-                    ->age;
+                $pet->calculated_age =
+                    Carbon::parse($pet->DOB)->age;
 
             } else {
 
                 $pet->calculated_age = 'N/A';
-
             }
         }
 
-        return view('pets', compact('pets'));
+        /*
+        |--------------------------------------------------------------------------
+        | Return Pets Page
+        |--------------------------------------------------------------------------
+        */
+
+        return view(
+            'pets',
+            compact('pets')
+        );
     }
 
 
@@ -65,15 +109,35 @@ class PetController extends Controller
 
     public function create(Request $request)
     {
-        // Check login
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Customer only
-        if (strtoupper($request->session()->get('role')) !== 'CUSTOMER') {
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
+        ) {
             return redirect()->route('home');
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Add Pet View
+        |--------------------------------------------------------------------------
+        */
 
         return view('add_pet');
     }
@@ -87,76 +151,121 @@ class PetController extends Controller
 
     public function store(Request $request)
     {
-        // Check login
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Customer only
-        if (strtoupper($request->session()->get('role')) !== 'CUSTOMER') {
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
+        ) {
             return redirect()->route('home');
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Validate
+        | Validation
         |--------------------------------------------------------------------------
         */
 
         $request->validate([
-            'Name' => 'required|string|max:255',
 
-            'Breed' => 'required|string|max:255',
+            'Name' => [
+                'required',
+                'string',
+                'max:255'
+            ],
 
-            'DOB' => 'required|date|before_or_equal:today',
+            'Breed' => [
+                'required',
+                'string',
+                'max:255'
+            ],
 
-            'Gender' => 'required|string|max:50',
+            'DOB' => [
+                'required',
+                'date',
+                'before_or_equal:today'
+            ],
 
-            'Weight' => 'required|numeric|min:0',
+            'Gender' => [
+                'required',
+                'string',
+                'max:50'
+            ],
 
-            'Allergies' => 'nullable|string|max:500',
+            'Weight' => [
+                'required',
+                'numeric',
+                'min:0'
+            ],
 
-            'Vaccination_Status' => 'required|string|max:255',
+            'Allergies' => [
+                'nullable',
+                'string',
+                'max:500'
+            ],
+
+            'Vaccination_Status' => [
+                'required',
+                'string',
+                'max:255'
+            ],
+
         ]);
-
 
         try {
 
             /*
             |--------------------------------------------------------------------------
-            | Create Pet
+            | Insert Pet
             |--------------------------------------------------------------------------
+            |
+            | DB::table()->insert() = Query Builder.
+            | No Eloquent ORM is used.
+            |
             */
 
-            $pet = new Pet();
+            DB::table('pet')->insert([
 
-            // Logged-in customer becomes owner
-            $pet->Customer_ID = $request->session()->get('user_id');
+                'Customer_ID' =>
+                    $request->session()->get('user_id'),
 
-            $pet->Name = trim($request->Name);
+                'Name' =>
+                    trim($request->Name),
 
-            $pet->Allergies = trim(
-                $request->Allergies ?? ''
-            );
+                'Allergies' =>
+                    trim($request->Allergies ?? ''),
 
-            $pet->Gender = trim(
-                $request->Gender
-            );
+                'Gender' =>
+                    trim($request->Gender),
 
-            $pet->Vaccination_Status = trim(
-                $request->Vaccination_Status
-            );
+                'Vaccination_Status' =>
+                    trim($request->Vaccination_Status),
 
-            $pet->Breed = trim(
-                $request->Breed
-            );
+                'Breed' =>
+                    trim($request->Breed),
 
-            $pet->DOB = $request->DOB;
+                'DOB' =>
+                    $request->DOB,
 
-            $pet->Weight = $request->Weight;
+                'Weight' =>
+                    $request->Weight,
 
-            $pet->save();
-
+            ]);
 
             /*
             |--------------------------------------------------------------------------
@@ -177,7 +286,8 @@ class PetController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Failed to create pet: ' . $e->getMessage()
+                    'Failed to create pet: ' .
+                    $e->getMessage()
                 );
         }
     }
@@ -189,30 +299,76 @@ class PetController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function edit(Request $request, $id)
-    {
-        // Check login
+    public function edit(
+        Request $request,
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Customer only
-        if (strtoupper($request->session()->get('role')) !== 'CUSTOMER') {
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
+        ) {
             return redirect()->route('home');
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Get only the customer's own pet
+        | Customer ID
         |--------------------------------------------------------------------------
         */
 
-        $pet = Pet::where('Pet_ID', $id)
+        $customerId =
+            $request->session()->get('user_id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Customer's Pet
+        |--------------------------------------------------------------------------
+        */
+
+        $pet = DB::table('pet')
+            ->where(
+                'Pet_ID',
+                $id
+            )
             ->where(
                 'Customer_ID',
-                $request->session()->get('user_id')
+                $customerId
             )
-            ->firstOrFail();
+            ->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pet Not Found
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$pet) {
+            abort(404);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Edit View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'edit_pet',
@@ -227,54 +383,122 @@ class PetController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function update(Request $request, $id)
-    {
-        // Check login
+    public function update(
+        Request $request,
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Customer only
-        if (strtoupper($request->session()->get('role')) !== 'CUSTOMER') {
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
+        ) {
             return redirect()->route('home');
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Validate
+        | Validation
         |--------------------------------------------------------------------------
         */
 
         $request->validate([
-            'Name' => 'required|string|max:255',
 
-            'Breed' => 'required|string|max:255',
+            'Name' => [
+                'required',
+                'string',
+                'max:255'
+            ],
 
-            'DOB' => 'required|date|before_or_equal:today',
+            'Breed' => [
+                'required',
+                'string',
+                'max:255'
+            ],
 
-            'Gender' => 'required|string|max:50',
+            'DOB' => [
+                'required',
+                'date',
+                'before_or_equal:today'
+            ],
 
-            'Weight' => 'required|numeric|min:0',
+            'Gender' => [
+                'required',
+                'string',
+                'max:50'
+            ],
 
-            'Allergies' => 'nullable|string|max:500',
+            'Weight' => [
+                'required',
+                'numeric',
+                'min:0'
+            ],
 
-            'Vaccination_Status' => 'required|string|max:255',
+            'Allergies' => [
+                'nullable',
+                'string',
+                'max:500'
+            ],
+
+            'Vaccination_Status' => [
+                'required',
+                'string',
+                'max:255'
+            ],
+
         ]);
-
 
         /*
         |--------------------------------------------------------------------------
-        | Find customer's own pet
+        | Customer ID
         |--------------------------------------------------------------------------
         */
 
-        $pet = Pet::where('Pet_ID', $id)
+        $customerId =
+            $request->session()->get('user_id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Customer Owns Pet
+        |--------------------------------------------------------------------------
+        */
+
+        $pet = DB::table('pet')
+            ->where(
+                'Pet_ID',
+                $id
+            )
             ->where(
                 'Customer_ID',
-                $request->session()->get('user_id')
+                $customerId
             )
-            ->firstOrFail();
+            ->first();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Pet Not Found
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$pet) {
+            abort(404);
+        }
 
         try {
 
@@ -284,32 +508,43 @@ class PetController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            $pet->Name = trim(
-                $request->Name
-            );
+            DB::table('pet')
+                ->where(
+                    'Pet_ID',
+                    $id
+                )
+                ->where(
+                    'Customer_ID',
+                    $customerId
+                )
+                ->update([
 
-            $pet->Allergies = trim(
-                $request->Allergies ?? ''
-            );
+                    'Name' =>
+                        trim($request->Name),
 
-            $pet->Gender = trim(
-                $request->Gender
-            );
+                    'Allergies' =>
+                        trim(
+                            $request->Allergies ?? ''
+                        ),
 
-            $pet->Vaccination_Status = trim(
-                $request->Vaccination_Status
-            );
+                    'Gender' =>
+                        trim($request->Gender),
 
-            $pet->Breed = trim(
-                $request->Breed
-            );
+                    'Vaccination_Status' =>
+                        trim(
+                            $request->Vaccination_Status
+                        ),
 
-            $pet->DOB = $request->DOB;
+                    'Breed' =>
+                        trim($request->Breed),
 
-            $pet->Weight = $request->Weight;
+                    'DOB' =>
+                        $request->DOB,
 
-            $pet->save();
+                    'Weight' =>
+                        $request->Weight,
 
+                ]);
 
             /*
             |--------------------------------------------------------------------------
@@ -330,7 +565,8 @@ class PetController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Failed to update pet: ' . $e->getMessage()
+                    'Failed to update pet: ' .
+                    $e->getMessage()
                 );
         }
     }
@@ -342,35 +578,101 @@ class PetController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function destroy(Request $request, $id)
-    {
-        // Check login
+    public function destroy(
+        Request $request,
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect()->route('login');
         }
 
-        // Customer only
-        if (strtoupper($request->session()->get('role')) !== 'CUSTOMER') {
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'CUSTOMER'
+        ) {
             return redirect()->route('home');
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Find customer's own pet
+        | Customer ID
         |--------------------------------------------------------------------------
         */
 
-        $pet = Pet::where('Pet_ID', $id)
+        $customerId =
+            $request->session()->get('user_id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Customer Owns Pet
+        |--------------------------------------------------------------------------
+        */
+
+        $pet = DB::table('pet')
+            ->where(
+                'Pet_ID',
+                $id
+            )
             ->where(
                 'Customer_ID',
-                $request->session()->get('user_id')
+                $customerId
             )
-            ->firstOrFail();
+            ->first();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Pet Not Found
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$pet) {
+
+            return redirect()
+                ->route('pets.index')
+                ->with(
+                    'error',
+                    'Pet not found.'
+                );
+        }
 
         try {
 
-            $pet->delete();
+            /*
+            |--------------------------------------------------------------------------
+            | Delete Pet
+            |--------------------------------------------------------------------------
+            */
+
+            DB::table('pet')
+                ->where(
+                    'Pet_ID',
+                    $id
+                )
+                ->where(
+                    'Customer_ID',
+                    $customerId
+                )
+                ->delete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Success
+            |--------------------------------------------------------------------------
+            */
 
             return redirect()
                 ->route('pets.index')

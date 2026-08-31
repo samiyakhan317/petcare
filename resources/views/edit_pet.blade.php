@@ -5,6 +5,7 @@
 @section('content')
 
 <style>
+
     .edit-container {
         width: 85%;
         max-width: 750px;
@@ -34,6 +35,15 @@
        MESSAGES
        ========================= */
 
+    .success-message {
+        background: #e8f7ed;
+        color: #217a3a;
+        border: 1px solid #b8e6c8;
+        padding: 14px 18px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+    }
+
     .error-message {
         background: #ffe8e8;
         color: #b00000;
@@ -46,6 +56,10 @@
     .error-message ul {
         margin-top: 8px;
         padding-left: 20px;
+    }
+
+    .error-message li {
+        margin-bottom: 4px;
     }
 
     /* =========================
@@ -80,6 +94,8 @@
         font-size: 14px;
         outline: none;
         font-family: Arial, sans-serif;
+        background: white;
+        box-sizing: border-box;
     }
 
     textarea {
@@ -162,275 +178,317 @@
         .actions {
             flex-direction: column;
         }
-    }
-</style>
 
+    }
+
+</style>
 
 <div class="edit-container">
 
-    <div class="edit-card">
+```
+<div class="edit-card">
 
-        <h1>Edit Pet 🐾</h1>
+    <h1>
+        Edit Pet 🐾
+    </h1>
 
-        <p class="subtitle">
-            Update your pet's information and health details.
-        </p>
-
-
-        <!-- =========================
-             VALIDATION ERRORS
-             ========================= -->
-
-        @if($errors->any())
-
-            <div class="error-message">
-
-                <strong>Please fix the following:</strong>
-
-                <ul>
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-
-            </div>
-
-        @endif
+    <p class="subtitle">
+        Update your pet's information and health details.
+    </p>
 
 
-        <!-- =========================
-             EDIT FORM
-             ========================= -->
+    {{-- SUCCESS MESSAGE --}}
 
-        <form
-            method="POST"
-            action="{{ route('pets.update', $pet->Pet_ID) }}"
-        >
+    @if(session('success'))
 
-            @csrf
+        <div class="success-message">
+            {{ session('success') }}
+        </div>
 
-            @method('PUT')
+    @endif
 
 
-            <!-- =========================
-                 NAME + BREED
-                 ========================= -->
+    {{-- ERROR MESSAGE --}}
 
-            <div class="row">
+    @if(session('error'))
 
-                <div class="field">
+        <div class="error-message">
+            {{ session('error') }}
+        </div>
 
-                    <label for="Name">
-                        Pet Name <span class="required">*</span>
-                    </label>
-
-                    <input
-                        type="text"
-                        id="Name"
-                        name="Name"
-                        value="{{ old('Name', $pet->Name) }}"
-                        placeholder="Enter pet name"
-                        required
-                    >
-
-                </div>
+    @endif
 
 
-                <div class="field">
+    {{-- VALIDATION ERRORS --}}
 
-                    <label for="Breed">
-                        Breed <span class="required">*</span>
-                    </label>
+    @if($errors->any())
 
-                    <input
-                        type="text"
-                        id="Breed"
-                        name="Breed"
-                        value="{{ old('Breed', $pet->Breed) }}"
-                        placeholder="Enter breed"
-                        required
-                    >
+        <div class="error-message">
 
-                </div>
+            <strong>
+                Please fix the following:
+            </strong>
 
-            </div>
+            <ul>
 
+                @foreach($errors->all() as $error)
 
-            <!-- =========================
-                 DOB + GENDER
-                 ========================= -->
+                    <li>
+                        {{ $error }}
+                    </li>
 
-            <div class="row">
+                @endforeach
 
-                <div class="field">
+            </ul>
 
-                    <label for="DOB">
-                        Date of Birth <span class="required">*</span>
-                    </label>
+        </div>
 
-                    <input
-                        type="date"
-                        id="DOB"
-                        name="DOB"
-                        value="{{ old('DOB', $pet->DOB) }}"
-                        max="{{ date('Y-m-d') }}"
-                        required
-                    >
-
-                </div>
+    @endif
 
 
-                <div class="field">
+    {{-- =========================
+         EDIT FORM
+    ========================== --}}
 
-                    <label for="Gender">
-                        Gender <span class="required">*</span>
-                    </label>
+    <form
+        method="POST"
+        action="{{ route('pets.update', $pet['Pet_ID']) }}"
+    >
 
-                    <select
-                        id="Gender"
-                        name="Gender"
-                        required
-                    >
+        @csrf
 
-                        <option value="">
-                            Select Gender
-                        </option>
-
-                        <option
-                            value="Male"
-                            {{ old('Gender', $pet->Gender) == 'Male' ? 'selected' : '' }}
-                        >
-                            Male
-                        </option>
-
-                        <option
-                            value="Female"
-                            {{ old('Gender', $pet->Gender) == 'Female' ? 'selected' : '' }}
-                        >
-                            Female
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
+        @method('PUT')
 
 
-            <!-- =========================
-                 WEIGHT
-                 ========================= -->
+        {{-- =========================
+             NAME + BREED
+        ========================== --}}
+
+        <div class="row">
 
             <div class="field">
 
-                <label for="Weight">
-                    Weight (kg) <span class="required">*</span>
+                <label for="Name">
+                    Pet Name
+                    <span class="required">*</span>
                 </label>
 
                 <input
-                    type="number"
-                    id="Weight"
-                    name="Weight"
-                    value="{{ old('Weight', $pet->Weight) }}"
-                    placeholder="Enter Weight in kg"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    id="Name"
+                    name="Name"
+                    value="{{ old('Name', $pet['Name']) }}"
+                    placeholder="Enter pet name"
                     required
                 >
 
             </div>
 
 
-            <!-- =========================
-                 ALLERGIES
-                 ========================= -->
+            <div class="field">
+
+                <label for="Breed">
+                    Breed
+                    <span class="required">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    id="Breed"
+                    name="Breed"
+                    value="{{ old('Breed', $pet['Breed']) }}"
+                    placeholder="Enter breed"
+                    required
+                >
+
+            </div>
+
+        </div>
+
+
+        {{-- =========================
+             DOB + GENDER
+        ========================== --}}
+
+        <div class="row">
 
             <div class="field">
 
-                <label for="Allergies">
-                    Allergies
+                <label for="DOB">
+                    Date of Birth
+                    <span class="required">*</span>
                 </label>
 
-                <textarea
-                    id="Allergies"
-                    name="Allergies"
-                    placeholder="Enter any known allergies or write None"
-                >{{ old('Allergies', $pet->Allergies) }}</textarea>
+                <input
+                    type="date"
+                    id="DOB"
+                    name="DOB"
+                    value="{{ old('DOB', $pet['DOB']) }}"
+                    max="{{ date('Y-m-d') }}"
+                    required
+                >
 
             </div>
 
 
-            <!-- =========================
-                 VACCINATION STATUS
-                 ========================= -->
-
             <div class="field">
 
-                <label for="Vaccination_Status">
-                    Vaccination Status <span class="required">*</span>
+                <label for="Gender">
+                    Gender
+                    <span class="required">*</span>
                 </label>
 
                 <select
-                    id="Vaccination_Status"
-                    name="Vaccination_Status"
+                    id="Gender"
+                    name="Gender"
                     required
                 >
 
                     <option value="">
-                        Select vaccination Status
+                        Select Gender
                     </option>
 
                     <option
-                        value="Fully Vaccinated"
-                        {{ old('Vaccination_Status', $pet->Vaccination_status) == 'Fully Vaccinated' ? 'selected' : '' }}
+                        value="Male"
+                        {{ old('Gender', $pet['Gender']) == 'Male' ? 'selected' : '' }}
                     >
-                        Fully Vaccinated
+                        Male
                     </option>
 
                     <option
-                        value="Partially Vaccinated"
-                        {{ old('Vaccination_Status', $pet->Vaccination_Status) == 'Partially Vaccinated' ? 'selected' : '' }}
+                        value="Female"
+                        {{ old('Gender', $pet['Gender']) == 'Female' ? 'selected' : '' }}
                     >
-                        Partially Vaccinated
-                    </option>
-
-                    <option
-                        value="Not Vaccinated"
-                        {{ old('Vaccination_Status', $pet->Vaccination_Status) == 'Not Vaccinated' ? 'selected' : '' }}
-                    >
-                        Not Vaccinated
+                        Female
                     </option>
 
                 </select>
 
             </div>
 
+        </div>
 
-            <!-- =========================
-                 BUTTONS
-                 ========================= -->
 
-            <div class="actions">
+        {{-- =========================
+             WEIGHT
+        ========================== --}}
 
-                <button
-                    type="submit"
-                    class="update-button"
+        <div class="field">
+
+            <label for="Weight">
+                Weight (kg)
+                <span class="required">*</span>
+            </label>
+
+            <input
+                type="number"
+                id="Weight"
+                name="Weight"
+                value="{{ old('Weight', $pet['Weight']) }}"
+                placeholder="Enter Weight in kg"
+                step="0.01"
+                min="0"
+                required
+            >
+
+        </div>
+
+
+        {{-- =========================
+             ALLERGIES
+        ========================== --}}
+
+        <div class="field">
+
+            <label for="Allergies">
+                Allergies
+            </label>
+
+            <textarea
+                id="Allergies"
+                name="Allergies"
+                placeholder="Enter any known allergies or write None"
+            >{{ old('Allergies', $pet['Allergies']) }}</textarea>
+
+        </div>
+
+
+        {{-- =========================
+             VACCINATION STATUS
+        ========================== --}}
+
+        <div class="field">
+
+            <label for="Vaccination_Status">
+
+                Vaccination Status
+
+                <span class="required">*</span>
+
+            </label>
+
+            <select
+                id="Vaccination_Status"
+                name="Vaccination_Status"
+                required
+            >
+
+                <option value="">
+                    Select vaccination Status
+                </option>
+
+                <option
+                    value="Fully Vaccinated"
+                    {{ old('Vaccination_Status', $pet['Vaccination_status']) == 'Fully Vaccinated' ? 'selected' : '' }}
                 >
-                    Update Pet
-                </button>
+                    Fully Vaccinated
+                </option>
 
-                <a
-                    href="{{ route('pets.index') }}"
-                    class="cancel-button"
+                <option
+                    value="Partially Vaccinated"
+                    {{ old('Vaccination_Status', $pet['Vaccination_status']) == 'Partially Vaccinated' ? 'selected' : '' }}
                 >
-                    Cancel
-                </a>
+                    Partially Vaccinated
+                </option>
 
-            </div>
+                <option
+                    value="Not Vaccinated"
+                    {{ old('Vaccination_Status', $pet['Vaccination_status']) == 'Not Vaccinated' ? 'selected' : '' }}
+                >
+                    Not Vaccinated
+                </option>
 
-        </form>
+            </select>
 
-    </div>
+        </div>
+
+
+        {{-- =========================
+             BUTTONS
+        ========================== --}}
+
+        <div class="actions">
+
+            <button
+                type="submit"
+                class="update-button"
+            >
+                Update Pet
+            </button>
+
+            <a
+                href="{{ route('pets.index') }}"
+                class="cancel-button"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+```
 
 </div>
 

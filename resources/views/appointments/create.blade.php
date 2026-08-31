@@ -28,9 +28,7 @@
         background: white;
         padding: 30px;
         border-radius: 12px;
-
-        box-shadow:
-            0 4px 15px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }
 
     .form-group {
@@ -48,10 +46,8 @@
     .form-group input {
         width: 100%;
         padding: 12px;
-
         border: 1px solid #ddd;
         border-radius: 7px;
-
         font-size: 15px;
         box-sizing: border-box;
         background: white;
@@ -60,12 +56,9 @@
     .service-info {
         margin-top: 8px;
         padding: 12px;
-
         background: #f8f9fb;
         border-radius: 7px;
-
         color: #555;
-
         display: none;
     }
 
@@ -76,12 +69,9 @@
     .groomer-info {
         margin-top: 8px;
         padding: 12px;
-
         background: #f8f9fb;
         border-radius: 7px;
-
         color: #555;
-
         display: none;
     }
 
@@ -106,16 +96,12 @@
     .book-button {
         width: 100%;
         padding: 13px;
-
         border: none;
         border-radius: 7px;
-
         background: #ff6b81;
         color: white;
-
         font-size: 15px;
         font-weight: bold;
-
         cursor: pointer;
     }
 
@@ -127,11 +113,8 @@
         background: white;
         padding: 40px;
         border-radius: 12px;
-
         text-align: center;
-
-        box-shadow:
-            0 4px 15px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }
 
     .no-pets h2 {
@@ -145,14 +128,10 @@
 
     .pet-button {
         display: inline-block;
-
         padding: 10px 18px;
-
         background: #ff6b81;
         color: white;
-
         text-decoration: none;
-
         border-radius: 7px;
         font-weight: bold;
     }
@@ -268,9 +247,7 @@
                             value="{{ $pet->Pet_ID }}"
                             {{ old('Pet_ID') == $pet->Pet_ID ? 'selected' : '' }}
                         >
-
                             {{ $pet->Name }}
-
                         </option>
 
                     @endforeach
@@ -281,26 +258,19 @@
 
 
             {{-- =========================
-                 SELECT SERVICE
+                 GET SERVICE ID FROM URL
             ========================== --}}
 
             @php
-                /*
-                |--------------------------------------------------------------------------
-                | Get Service ID From URL
-                |--------------------------------------------------------------------------
-                |
-                | Example:
-                | /appointments/create?service_id=3
-                |
-                | If validation fails, old('Service_ID')
-                | gets priority.
-                |
-                */
 
                 $requestServiceId = request('service_id');
+
             @endphp
 
+
+            {{-- =========================
+                 SELECT SERVICE
+            ========================== --}}
 
             <div class="form-group">
 
@@ -322,32 +292,15 @@
 
                         <option
                             value="{{ $service->Service_ID }}"
-
                             data-duration="{{ $service->Duration }}"
-
-                            data-price="{{ number_format(
-                                $service->Price,
-                                2
-                            ) }}"
-
+                            data-price="{{ number_format($service->Price, 2) }}"
                             data-description="{{ $service->Description }}"
-
-                            {{ old(
-                                'Service_ID',
-                                $requestServiceId
-                            ) == $service->Service_ID
-                                ? 'selected'
-                                : ''
-                            }}
+                            {{ old('Service_ID', $requestServiceId) == $service->Service_ID ? 'selected' : '' }}
                         >
 
                             {{ $service->Service_Name }}
-
                             -
-                            ৳{{ number_format(
-                                $service->Price,
-                                2
-                            ) }}
+                            ৳{{ number_format($service->Price, 2) }}
 
                         </option>
 
@@ -372,7 +325,6 @@
                         </strong>
 
                         <span id="serviceDuration"></span>
-
                         minutes
 
                     </div>
@@ -431,14 +383,9 @@
 
                         <option
                             value="{{ $groomer->ID }}"
-
                             data-specialization="{{ $groomer->Specialization }}"
-
                             data-experience="{{ $groomer->Experience }}"
-
-                            {{ old('Groomer_ID') == $groomer->ID
-                                ? 'selected'
-                                : '' }}
+                            {{ old('Groomer_ID') == $groomer->ID ? 'selected' : '' }}
                         >
 
                             {{ $groomer->Name }}
@@ -477,7 +424,6 @@
                         </strong>
 
                         <span id="groomerExperience"></span>
-
                         years
 
                     </div>
@@ -502,9 +448,7 @@
                     name="Appointment_Date"
                     id="Appointment_Date"
                     required
-
                     min="{{ date('Y-m-d') }}"
-
                     value="{{ old('Appointment_Date') }}"
                 >
 
@@ -526,7 +470,6 @@
                     name="Appointment_Time"
                     id="Appointment_Time"
                     required
-
                     value="{{ old('Appointment_Time') }}"
                 >
 
@@ -541,9 +484,7 @@
                 type="submit"
                 class="book-button"
             >
-
                 Book Appointment
-
             </button>
 
         </form>
@@ -570,9 +511,7 @@
             href="{{ route('pets.index') }}"
             class="pet-button"
         >
-
             Go to My Pets
-
         </a>
 
     </div>
@@ -584,11 +523,9 @@
 
 <script>
 
-    /*
-    |--------------------------------------------------------------------------
-    | SERVICE INFORMATION
-    |--------------------------------------------------------------------------
-    */
+    /* =========================
+       SERVICE INFORMATION
+    ========================== */
 
     const serviceSelect =
         document.getElementById('Service_ID');
@@ -654,11 +591,9 @@
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | GROOMER INFORMATION
-    |--------------------------------------------------------------------------
-    */
+    /* =========================
+       GROOMER INFORMATION
+    ========================== */
 
     const groomerSelect =
         document.getElementById('Groomer_ID');
@@ -718,11 +653,10 @@
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | SHOW INFORMATION FOR AUTOMATICALLY SELECTED VALUES
-    |--------------------------------------------------------------------------
-    */
+    /* =========================
+       SHOW INFORMATION FOR
+       AUTOMATICALLY SELECTED VALUES
+    ========================== */
 
     showServiceInfo();
 

@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Groomer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -18,22 +16,80 @@ class AdminGroomerController extends Controller
 
     public function index(Request $request)
     {
-        // Check whether user is logged in
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect('/login');
         }
 
-        // Only ADMIN can access this page
-        if (strtoupper($request->session()->get('role')) !== 'ADMIN') {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'ADMIN'
+        ) {
             return redirect('/login');
         }
 
-        // Get all groomers with their User information
-        $groomers = Groomer::with('user')
-            ->orderBy('ID', 'desc')
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get Groomers
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        | NO Eloquent ORM.
+        |
+        | User and Groomer are joined using their common ID.
+        |
+        */
+
+        $groomers = DB::table('Groomer as g')
+            ->join(
+                'User as u',
+                'g.ID',
+                '=',
+                'u.ID'
+            )
+            ->whereRaw(
+                'UPPER(u.Role) = ?',
+                ['GROOMER']
+            )
+            ->select(
+                'g.ID',
+                'g.Name',
+                'g.Phone',
+                'g.Experience',
+                'g.Specialization',
+                'u.Email'
+            )
+            ->orderBy(
+                'g.ID',
+                'desc'
+            )
             ->get();
 
-        return view('admin.manage_groomers', compact('groomers'));
+
+        /*
+        |--------------------------------------------------------------------------
+        | Send Data To View
+        |--------------------------------------------------------------------------
+        */
+
+        return view(
+            'admin.manage_groomers',
+            compact('groomers')
+        );
     }
 
 
@@ -45,23 +101,72 @@ class AdminGroomerController extends Controller
 
     public function store(Request $request)
     {
-        // Check whether user is logged in
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect('/login');
         }
 
-        // Only ADMIN can add groomers
-        if (strtoupper($request->session()->get('role')) !== 'ADMIN') {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'ADMIN'
+        ) {
             return redirect('/login');
         }
 
-        // Validate form
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Form
+        |--------------------------------------------------------------------------
+        */
+
         $request->validate([
-            'name' => 'required|string|max:255',
-            'specialization' => 'required|string|max:255',
-            'experience' => 'required|numeric|min:0',
-            'phone' => 'required|string|max:50',
+
+            'name' => [
+                'required',
+                'string',
+                'max:255'
+            ],
+
+            'specialization' => [
+                'required',
+                'string',
+                'max:255'
+            ],
+
+            'experience' => [
+                'required',
+                'numeric',
+                'min:0'
+            ],
+
+            'phone' => [
+                'required',
+                'string',
+                'max:50'
+            ],
+
         ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Begin Database Transaction
+        |--------------------------------------------------------------------------
+        */
 
         DB::beginTransaction();
 
@@ -69,68 +174,167 @@ class AdminGroomerController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Create User Account
+            | STEP 1: Generate Groomer Information
             |--------------------------------------------------------------------------
             */
 
-            $fullName = trim($request->name);
+            $fullName = trim(
+                $request->name
+            );
 
-            // Generate email similar to the old PHP system
+
+            /*
+            |--------------------------------------------------------------------------
+            | Generate Email
+            |--------------------------------------------------------------------------
+            |
+            | Same idea as your previous system.
+            |
+            */
+
             $cleanName = preg_replace(
                 '/[^a-zA-Z0-9]/',
                 '',
                 strtolower($fullName)
             );
 
-            $email = $cleanName . rand(100, 999) . '@petcare.com';
 
-            // Create User
-            $user = new User();
-
-            $user->Email = $email;
-            $user->Password = Hash::make('Groomer123!');
-            $user->Role = 'GROOMER';
-
-            $user->save();
+            $email = $cleanName
+                . rand(100, 999)
+                . '@petcare.com';
 
 
             /*
             |--------------------------------------------------------------------------
-            | Create Groomer Record
+            | Make Sure Email Is Unique
             |--------------------------------------------------------------------------
             */
 
-            $groomer = new Groomer();
+            while (
+                DB::table('User')
+                    ->where('Email', $email)
+                    ->exists()
+            ) {
 
-            // User ID and Groomer ID are the same
-            $groomer->ID = $user->ID;
+                $email = $cleanName
+                    . rand(100, 999)
+                    . '@petcare.com';
+            }
 
-            $groomer->Name = $fullName;
-            $groomer->Phone = $request->phone;
-            $groomer->Experience = $request->experience;
-            $groomer->Specialization = $request->specialization;
 
-            $groomer->save();
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 2: Insert Into User
+            |--------------------------------------------------------------------------
+            |
+            | Query Builder.
+            | NO User model.
+            |
+            */
 
+            $groomerId = DB::table('User')
+                ->insertGetId([
+
+                    'Email' => $email,
+
+                    'Password' => Hash::make(
+                        'Groomer123!'
+                    ),
+
+                    'Role' => 'GROOMER',
+
+                ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Safety Check
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !$groomerId ||
+                $groomerId <= 0
+            ) {
+
+                throw new \Exception(
+                    'Groomer/User ID was not generated correctly.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 3: Insert Into Groomer
+            |--------------------------------------------------------------------------
+            |
+            | Query Builder.
+            | NO Groomer model.
+            |
+            */
+
+            DB::table('Groomer')
+                ->insert([
+
+                    'ID' => $groomerId,
+
+                    'Name' => $fullName,
+
+                    'Phone' => trim(
+                        $request->phone
+                    ),
+
+                    'Experience' =>
+                        $request->experience,
+
+                    'Specialization' =>
+                        trim(
+                            $request->specialization
+                        ),
+
+                ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 4: Commit
+            |--------------------------------------------------------------------------
+            */
 
             DB::commit();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Success Message
+            |--------------------------------------------------------------------------
+            */
 
             return redirect()
                 ->route('admin.groomers')
                 ->with(
                     'success',
-                    "Groomer added successfully! (Assigned ID: #{$user->ID})"
+                    "Groomer added successfully! (Assigned ID: #{$groomerId})"
                 );
+
 
         } catch (\Exception $e) {
 
+            /*
+            |--------------------------------------------------------------------------
+            | Rollback
+            |--------------------------------------------------------------------------
+            */
+
             DB::rollBack();
+
 
             return redirect()
                 ->route('admin.groomers')
                 ->with(
                     'error',
-                    'Database Error: ' . $e->getMessage()
+                    'Database Error: ' .
+                    $e->getMessage()
                 );
         }
     }
@@ -142,36 +346,129 @@ class AdminGroomerController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function destroy(Request $request, $id)
-    {
-        // Check whether user is logged in
+    public function destroy(
+        Request $request,
+        $id
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Login
+        |--------------------------------------------------------------------------
+        */
+
         if (!$request->session()->has('user_id')) {
             return redirect('/login');
         }
 
-        // Only ADMIN can delete groomers
-        if (strtoupper($request->session()->get('role')) !== 'ADMIN') {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Only
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            strtoupper(
+                $request->session()->get('role', '')
+            ) !== 'ADMIN'
+        ) {
             return redirect('/login');
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Groomer Exists
+        |--------------------------------------------------------------------------
+        |
+        | Query Builder only.
+        |
+        */
+
+        $groomer = DB::table('User')
+            ->where(
+                'ID',
+                $id
+            )
+            ->whereRaw(
+                'UPPER(Role) = ?',
+                ['GROOMER']
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Groomer Not Found
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$groomer) {
+
+            return redirect()
+                ->route('admin.groomers')
+                ->with(
+                    'error',
+                    'Groomer not found.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Begin Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        DB::beginTransaction();
 
         try {
 
             /*
             |--------------------------------------------------------------------------
-            | Delete User
+            | STEP 1: Delete Groomer
             |--------------------------------------------------------------------------
             |
-            | The User record is deleted.
-            | If your database foreign key uses ON DELETE CASCADE,
-            | the related Groomer record will also be deleted.
+            | Explicitly delete the child record first.
+            | This avoids depending on ON DELETE CASCADE.
             |
             */
 
-            $user = User::where('ID', $id)
-                ->whereRaw('UPPER(Role) = ?', ['GROOMER'])
-                ->firstOrFail();
+            DB::table('Groomer')
+                ->where(
+                    'ID',
+                    $id
+                )
+                ->delete();
 
-            $user->delete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | STEP 2: Delete User
+            |--------------------------------------------------------------------------
+            */
+
+            DB::table('User')
+                ->where(
+                    'ID',
+                    $id
+                )
+                ->whereRaw(
+                    'UPPER(Role) = ?',
+                    ['GROOMER']
+                )
+                ->delete();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Commit
+            |--------------------------------------------------------------------------
+            */
+
+            DB::commit();
+
 
             return redirect()
                 ->route('admin.groomers')
@@ -180,13 +477,24 @@ class AdminGroomerController extends Controller
                     "Groomer #{$id} removed successfully."
                 );
 
+
         } catch (\Exception $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rollback
+            |--------------------------------------------------------------------------
+            */
+
+            DB::rollBack();
+
 
             return redirect()
                 ->route('admin.groomers')
                 ->with(
                     'error',
-                    'Database Error: ' . $e->getMessage()
+                    'Database Error: ' .
+                    $e->getMessage()
                 );
         }
     }

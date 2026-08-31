@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,23 +22,89 @@ class AdminCustomerController extends Controller
         }
 
         // Only ADMIN can access this page
-        if (strtoupper($request->session()->get('role')) !== 'ADMIN') {
+        if (strtoupper($request->session()->get('role', '')) !== 'ADMIN') {
             return redirect('/login');
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Get all customers
+        | Get Customers
+        |--------------------------------------------------------------------------
+        |
+        | No Eloquent ORM is used here.
+        | Data is retrieved using DB::table().
+        |
+        */
+
+        $customers = DB::table('User as u')
+            ->leftJoin(
+                'Customer as c',
+                'u.ID',
+                '=',
+                'c.ID'
+            )
+            ->whereRaw(
+                'UPPER(u.Role) = ?',
+                ['CUSTOMER']
+            )
+            ->select(
+                'u.ID',
+                'u.Email',
+                'c.First_name',
+                'c.Last_name',
+                'c.Address',
+                'c.Loyalty_Points'
+            )
+            ->orderBy(
+                'u.ID',
+                'desc'
+            )
+            ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Add Phone Numbers and Pet Count
         |--------------------------------------------------------------------------
         */
 
-        $customers = User::whereRaw('UPPER(Role) = ?', ['CUSTOMER'])
-            ->with([
-                'customer.phoneNumbers'
-            ])
-            ->withCount('pets')
-            ->orderBy('ID', 'desc')
-            ->get();
+        foreach ($customers as $customer) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Get Phone Numbers
+            |--------------------------------------------------------------------------
+            */
+
+            $customer->phoneNumbers = DB::table(
+                'Customer_Phone'
+            )
+                ->where(
+                    'Customer_ID',
+                    $customer->ID
+                )
+                ->select(
+                    'Phone_Number'
+                )
+                ->get();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Get Registered Pet Count
+            |--------------------------------------------------------------------------
+            */
+
+            $customer->pets_count = DB::table(
+                'Pet'
+            )
+                ->where(
+                    'Customer_ID',
+                    $customer->ID
+                )
+                ->count();
+        }
+
 
         return view(
             'admin.manage_customers',
@@ -62,7 +127,7 @@ class AdminCustomerController extends Controller
         }
 
         // Only ADMIN can add customers
-        if (strtoupper($request->session()->get('role')) !== 'ADMIN') {
+        if (strtoupper($request->session()->get('role', '')) !== 'ADMIN') {
             return redirect('/login');
         }
 
@@ -85,7 +150,6 @@ class AdminCustomerController extends Controller
 
             'password' => 'required|string|size:8',
 
-            // At least one phone number
             'phone_numbers' => 'required|array|min:1',
 
             'phone_numbers.*' => 'nullable|string|max:30',
@@ -93,36 +157,33 @@ class AdminCustomerController extends Controller
         ]);
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Begin Transaction
+        |--------------------------------------------------------------------------
+        */
+
         DB::beginTransaction();
 
         try {
 
             /*
             |--------------------------------------------------------------------------
-            | STEP 1: Create User
+            | STEP 1: Insert User
             |--------------------------------------------------------------------------
             */
 
-            $user = new User();
+            $customerId = DB::table('User')->insertGetId([
 
-            $user->Email = trim($request->email);
+                'Email' => trim($request->email),
 
-            $user->Password = Hash::make(
-                $request->password
-            );
+                'Password' => Hash::make(
+                    $request->password
+                ),
 
-            $user->Role = 'CUSTOMER';
+                'Role' => 'CUSTOMER',
 
-            $user->save();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | STEP 2: Get Generated User ID
-            |--------------------------------------------------------------------------
-            */
-
-            $customerId = $user->ID;
+            ]);
 
 
             /*
@@ -141,7 +202,7 @@ class AdminCustomerController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | STEP 3: Create Customer
+            | STEP 2: Insert Customer
             |--------------------------------------------------------------------------
             */
 
@@ -168,7 +229,7 @@ class AdminCustomerController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | STEP 4: Save Multiple Phone Numbers
+            | STEP 3: Insert Phone Numbers
             |--------------------------------------------------------------------------
             */
 
@@ -176,21 +237,14 @@ class AdminCustomerController extends Controller
 
                 $phoneNumber = trim($phoneNumber);
 
-                /*
-                | Skip empty additional phone fields
-                */
 
+                // Skip empty additional phone fields
                 if ($phoneNumber === '') {
                     continue;
                 }
 
 
                 DB::table('Customer_Phone')->insert([
-
-                    /*
-                    | IMPORTANT:
-                    | Use the actual generated Customer ID.
-                    */
 
                     'Customer_ID' => $customerId,
 
@@ -202,7 +256,7 @@ class AdminCustomerController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | STEP 5: Commit Transaction
+            | STEP 4: Commit
             |--------------------------------------------------------------------------
             */
 
@@ -216,15 +270,17 @@ class AdminCustomerController extends Controller
                     "Customer added successfully! (Assigned ID: #{$customerId})"
                 );
 
+
         } catch (\Exception $e) {
 
             /*
             |--------------------------------------------------------------------------
-            | Rollback if anything goes wrong
+            | Rollback
             |--------------------------------------------------------------------------
             */
 
             DB::rollBack();
+
 
             return redirect()
                 ->route('admin.customers')
@@ -242,50 +298,114 @@ class AdminCustomerController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function destroy(Request $request, $id)
-    {
+    public function destroy(
+        Request $request,
+        $id
+    ) {
+
         // Check whether user is logged in
         if (!$request->session()->has('user_id')) {
             return redirect('/login');
         }
 
         // Only ADMIN can delete customers
-        if (strtoupper($request->session()->get('role')) !== 'ADMIN') {
+        if (strtoupper($request->session()->get('role', '')) !== 'ADMIN') {
             return redirect('/login');
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Customer Exists
+        |--------------------------------------------------------------------------
+        */
+
+        $customer = DB::table('User')
+            ->where(
+                'ID',
+                $id
+            )
+            ->whereRaw(
+                'UPPER(Role) = ?',
+                ['CUSTOMER']
+            )
+            ->first();
+
+
+        if (!$customer) {
+
+            return redirect()
+                ->route('admin.customers')
+                ->with(
+                    'error',
+                    'Customer not found.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Delete Customer
+        |--------------------------------------------------------------------------
+        */
+
+        DB::beginTransaction();
 
         try {
 
             /*
             |--------------------------------------------------------------------------
-            | Find Customer User
+            | Delete Phone Numbers
             |--------------------------------------------------------------------------
+            |
+            | Explicitly delete these instead of depending
+            | on ON DELETE CASCADE.
+            |
             */
 
-            $user = User::where('ID', $id)
-                ->whereRaw(
-                    'UPPER(Role) = ?',
-                    ['CUSTOMER']
+            DB::table('Customer_Phone')
+                ->where(
+                    'Customer_ID',
+                    $id
                 )
-                ->firstOrFail();
+                ->delete();
 
 
             /*
             |--------------------------------------------------------------------------
-            | Delete User
+            | Delete Customer Record
             |--------------------------------------------------------------------------
-            |
-            | Because your Customer_Phone foreign key has:
-            |
-            | ON DELETE CASCADE
-            |
-            | the customer's phone numbers will automatically
-            | be deleted when the Customer record is deleted.
-            |
             */
 
-            $user->delete();
+            DB::table('Customer')
+                ->where(
+                    'ID',
+                    $id
+                )
+                ->delete();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delete User Record
+            |--------------------------------------------------------------------------
+            */
+
+            DB::table('User')
+                ->where(
+                    'ID',
+                    $id
+                )
+                ->delete();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Commit
+            |--------------------------------------------------------------------------
+            */
+
+            DB::commit();
 
 
             return redirect()
@@ -295,7 +415,11 @@ class AdminCustomerController extends Controller
                     "Customer ID #{$id} deleted successfully."
                 );
 
+
         } catch (\Exception $e) {
+
+            DB::rollBack();
+
 
             return redirect()
                 ->route('admin.customers')

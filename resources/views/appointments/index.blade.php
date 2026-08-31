@@ -183,460 +183,367 @@
         .appointments-table-container {
             padding: 15px;
         }
+
     }
 
 </style>
 
+
 <div class="appointments-page">
 
-```
-{{-- =====================================================
-     HEADER
-====================================================== --}}
+    {{-- =========================
+         HEADER
+    ========================== --}}
 
-<div class="appointments-header">
+    <div class="appointments-header">
 
-    <h1>
-        My Appointments
-    </h1>
+        <h1>
+            My Appointments
+        </h1>
 
-    <p>
-        View and manage your pet grooming appointments.
-    </p>
-
-</div>
-
-
-{{-- =====================================================
-     SUCCESS MESSAGE
-====================================================== --}}
-
-@if(session('success'))
-
-    <div class="alert alert-success">
-
-        {{ session('success') }}
+        <p>
+            View and manage your pet grooming appointments.
+        </p>
 
     </div>
 
-@endif
+
+    {{-- =========================
+         SUCCESS MESSAGE
+    ========================== --}}
+
+    @if(session('success'))
+
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+
+    @endif
 
 
-{{-- =====================================================
-     ERROR MESSAGE
-====================================================== --}}
+    {{-- =========================
+         ERROR MESSAGE
+    ========================== --}}
 
-@if(session('error'))
+    @if(session('error'))
 
-    <div class="alert alert-error">
+        <div class="alert alert-error">
+            {{ session('error') }}
+        </div>
 
-        {{ session('error') }}
-
-    </div>
-
-@endif
+    @endif
 
 
-{{-- =====================================================
-     VALIDATION ERRORS
-====================================================== --}}
+    {{-- =========================
+         VALIDATION ERRORS
+    ========================== --}}
 
-@if($errors->any())
+    @if($errors->any())
 
-    <div class="alert alert-error">
+        <div class="alert alert-error">
 
-        @foreach($errors->all() as $error)
+            @foreach($errors->all() as $error)
 
-            <div>
-                {{ $error }}
-            </div>
+                <div>
+                    {{ $error }}
+                </div>
 
-        @endforeach
+            @endforeach
 
-    </div>
+        </div>
 
-@endif
-
-
-{{-- =====================================================
-     CHECK APPOINTMENTS
-====================================================== --}}
-
-@if($appointments->count() > 0)
+    @endif
 
 
-    <div class="appointments-table-container">
+    {{-- =========================
+         CHECK APPOINTMENTS
+    ========================== --}}
 
-        <table class="appointments-table">
+    @if(count($appointments) > 0)
 
+        <div class="appointments-table-container">
 
-            {{-- =================================================
-                 TABLE HEADER
-            ================================================== --}}
+            <table class="appointments-table">
 
-            <thead>
-
-                <tr>
-
-                    <th>
-                        Pet
-                    </th>
-
-                    <th>
-                        Service
-                    </th>
-
-                    <th>
-                        Duration
-                    </th>
-
-                    <th>
-                        Date
-                    </th>
-
-                    <th>
-                        Time
-                    </th>
-
-                    <th>
-                        Groomer
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
-
-                    <th>
-                        Action
-                    </th>
-
-                </tr>
-
-            </thead>
-
-
-            {{-- =================================================
-                 TABLE BODY
-            ================================================== --}}
-
-            <tbody>
-
-
-                @foreach($appointments as $appointment)
-
-
-                    {{-- =================================================
-                         GET APPOINTMENT SERVICES
-                    ================================================== --}}
-
-                    @php
-
-                        $appointmentServices =
-
-                            \DB::table(
-                                'Appointment_Service as aps'
-                            )
-
-                            ->join(
-                                'Service as s',
-                                'aps.Service_ID',
-                                '=',
-                                's.Service_ID'
-                            )
-
-                            ->where(
-                                'aps.Appointment_ID',
-                                $appointment->Appointment_ID
-                            )
-
-                            ->select(
-                                's.Service_Name',
-                                's.Duration'
-                            )
-
-                            ->get();
-
-                    @endphp
-
+                <thead>
 
                     <tr>
 
+                        <th>
+                            Pet
+                        </th>
 
-                        {{-- =================================================
-                             PET
-                        ================================================== --}}
+                        <th>
+                            Service
+                        </th>
 
-                        <td>
+                        <th>
+                            Duration
+                        </th>
 
-                            @if($appointment->pet)
+                        <th>
+                            Date
+                        </th>
 
-                                {{ $appointment->pet->Name }}
+                        <th>
+                            Time
+                        </th>
 
-                            @else
+                        <th>
+                            Groomer
+                        </th>
 
-                                N/A
+                        <th>
+                            Status
+                        </th>
 
-                            @endif
+                        <th>
+                            Action
+                        </th>
 
-                        </td>
+                    </tr>
+
+                </thead>
 
 
-                        {{-- =================================================
-                             SERVICE
-                        ================================================== --}}
+                <tbody>
 
-                        <td>
+                    @foreach($appointments as $appointment)
 
-                            @if($appointmentServices->count() > 0)
+                        <tr>
 
-                                @foreach(
-                                    $appointmentServices
-                                    as $service
+                            {{-- =========================
+                                 PET
+                            ========================== --}}
+
+                            <td>
+
+                                {{ $appointment->Pet_Name ?? 'N/A' }}
+
+                            </td>
+
+
+                            {{-- =========================
+                                 SERVICE
+                            ========================== --}}
+
+                            <td>
+
+                                @if(
+                                    isset($appointment->Service_Name)
+                                    && $appointment->Service_Name
                                 )
 
                                     <div class="service-name">
 
-                                        {{ $service->Service_Name }}
+                                        {{ $appointment->Service_Name }}
 
                                     </div>
 
-                                @endforeach
+                                @else
 
-                            @else
+                                    N/A
 
-                                N/A
+                                @endif
 
-                            @endif
-
-                        </td>
+                            </td>
 
 
-                        {{-- =================================================
-                             DURATION
-                        ================================================== --}}
+                            {{-- =========================
+                                 DURATION
+                            ========================== --}}
 
-                        <td>
+                            <td>
 
-                            @if($appointmentServices->count() > 0)
-
-                                @foreach(
-                                    $appointmentServices
-                                    as $service
+                                @if(
+                                    isset($appointment->Duration)
+                                    && $appointment->Duration
                                 )
 
                                     <div class="duration">
 
-                                        {{ $service->Duration }}
+                                        {{ $appointment->Duration }}
                                         minutes
 
                                     </div>
 
-                                @endforeach
+                                @else
 
-                            @else
+                                    N/A
 
-                                N/A
+                                @endif
 
-                            @endif
+                            </td>
 
-                        </td>
 
+                            {{-- =========================
+                                 DATE
+                            ========================== --}}
 
-                        {{-- =================================================
-                             DATE
-                        ================================================== --}}
+                            <td>
 
-                        <td>
+                                @if($appointment->Appointment_Date)
 
-                            @if($appointment->Appointment_Date)
+                                    {{ \Carbon\Carbon::parse(
+                                        $appointment->Appointment_Date
+                                    )->format('d M Y') }}
 
-                                {{ \Carbon\Carbon::parse(
-                                    $appointment->Appointment_Date
-                                )->format('d M Y') }}
+                                @else
 
-                            @else
+                                    N/A
 
-                                N/A
+                                @endif
 
-                            @endif
+                            </td>
 
-                        </td>
 
+                            {{-- =========================
+                                 TIME
+                            ========================== --}}
 
-                        {{-- =================================================
-                             TIME
-                        ================================================== --}}
+                            <td>
 
-                        <td>
+                                @if($appointment->Appointment_Time)
 
-                            @if($appointment->Appointment_Time)
+                                    {{ \Carbon\Carbon::parse(
+                                        $appointment->Appointment_Time
+                                    )->format('h:i A') }}
 
-                                {{ \Carbon\Carbon::parse(
-                                    $appointment->Appointment_Time
-                                )->format('h:i A') }}
+                                @else
 
-                            @else
+                                    N/A
 
-                                N/A
+                                @endif
 
-                            @endif
+                            </td>
 
-                        </td>
 
+                            {{-- =========================
+                                 GROOMER
+                            ========================== --}}
 
-                        {{-- =================================================
-                             GROOMER
-                        ================================================== --}}
+                            <td>
 
-                        <td>
+                                {{ $appointment->Groomer_Name ?? 'Not Assigned' }}
 
-                            @if($appointment->groomer)
+                            </td>
 
-                                {{ $appointment->groomer->Name }}
 
-                            @else
+                            {{-- =========================
+                                 STATUS
+                            ========================== --}}
 
-                                Not Assigned
+                            <td>
 
-                            @endif
+                                @php
 
-                        </td>
+                                    $status = strtoupper(
+                                        $appointment->Status ?? 'PENDING'
+                                    );
 
+                                @endphp
 
-                        {{-- =================================================
-                             STATUS
-                        ================================================== --}}
 
-                        <td>
+                                @if($status === 'PENDING')
 
-                            @php
+                                    <span class="status status-pending">
+                                        PENDING
+                                    </span>
 
-                                $status = strtoupper(
-                                    $appointment->Status
-                                    ?? 'PENDING'
-                                );
+                                @elseif($status === 'CONFIRMED')
 
-                            @endphp
+                                    <span class="status status-confirmed">
+                                        CONFIRMED
+                                    </span>
 
+                                @elseif($status === 'COMPLETED')
 
-                            @if($status === 'PENDING')
+                                    <span class="status status-completed">
+                                        COMPLETED
+                                    </span>
 
-                                <span class="status status-pending">
-                                    PENDING
-                                </span>
+                                @elseif($status === 'CANCELLED')
 
+                                    <span class="status status-cancelled">
+                                        CANCELLED
+                                    </span>
 
-                            @elseif($status === 'CONFIRMED')
+                                @else
 
-                                <span class="status status-confirmed">
-                                    CONFIRMED
-                                </span>
+                                    <span class="status status-pending">
+                                        {{ $status }}
+                                    </span>
 
+                                @endif
 
-                            @elseif($status === 'COMPLETED')
+                            </td>
 
-                                <span class="status status-completed">
-                                    COMPLETED
-                                </span>
 
+                            {{-- =========================
+                                 ACTION
+                            ========================== --}}
 
-                            @elseif($status === 'CANCELLED')
+                            <td>
 
-                                <span class="status status-cancelled">
-                                    CANCELLED
-                                </span>
+                                <a
+                                    href="{{ route(
+                                        'appointments.show',
+                                        [
+                                            'id' => $appointment->Appointment_ID
+                                        ]
+                                    ) }}"
+                                    class="view-btn"
+                                >
 
+                                    View Details
 
-                            @else
+                                </a>
 
-                                <span class="status status-pending">
+                            </td>
 
-                                    {{ $status }}
+                        </tr>
 
-                                </span>
+                    @endforeach
 
-                            @endif
+                </tbody>
 
-                        </td>
+            </table>
 
-
-                        {{-- =================================================
-                             ACTION
-                        ================================================== --}}
-
-                        <td>
-
-                            <a
-                                href="{{ route(
-                                    'appointments.show',
-                                    [
-                                        'id' =>
-                                        $appointment->Appointment_ID
-                                    ]
-                                ) }}"
-                                class="view-btn"
-                            >
-
-                                View Details
-
-                            </a>
-
-                        </td>
-
-
-                    </tr>
-
-
-                @endforeach
-
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-
-@else
-
-
-    {{-- =====================================================
-         NO APPOINTMENTS
-    ====================================================== --}}
-
-    <div class="no-appointments">
-
-
-        <div class="icon">
-            🐾
         </div>
 
 
-        <h2>
-            No Appointments Yet
-        </h2>
+    @else
 
+        {{-- =========================
+             NO APPOINTMENTS
+        ========================== --}}
 
-        <p>
-            You haven't booked any grooming appointments yet.
-        </p>
+        <div class="no-appointments">
 
+            <div class="icon">
+                🐾
+            </div>
 
-        <a
-            href="{{ route('appointments.create') }}"
-            class="book-btn"
-        >
+            <h2>
+                No Appointments Yet
+            </h2>
 
-            Book an Appointment
+            <p>
+                You haven't booked any grooming appointments yet.
+            </p>
 
-        </a>
+            <a
+                href="{{ route('appointments.create') }}"
+                class="book-btn"
+            >
 
+                Book an Appointment
 
-    </div>
+            </a>
 
+        </div>
 
-@endif
-```
+    @endif
 
 </div>
 

@@ -191,113 +191,111 @@
 
 </style>
 
-
 <!-- =====================================================
      HERO
 ====================================================== -->
 
 <section class="hero">
 
+```
+<div class="hero-text">
 
-    <div class="hero-text">
+    <!-- =================================================
+         WELCOME
+    ================================================== -->
 
+    <div class="welcome">
 
-        <!-- =================================================
-             WELCOME
-        ================================================== -->
+        Welcome back,
 
-        <div class="welcome">
+        {{ $display_name }}
 
-            Welcome back,
-
-            {{ $display_name }}
-
-            🐾
-
-        </div>
-
-
-        <!-- =================================================
-             CUSTOMER
-        ================================================== -->
-
-        @if ($role === 'CUSTOMER')
-
-            <h1>
-
-                Better Care for
-
-                <span>
-                    Every Pet
-                </span>
-
-            </h1>
-
-
-            <p>
-
-                Manage your pets, book grooming
-                appointments, keep track of their
-                grooming history, and explore
-                grooming services — all in one place.
-
-            </p>
-
-
-            <a
-                href="{{ route('pets.index') }}"
-                class="hero-button"
-            >
-
-                Manage My Pets &rarr;
-
-            </a>
-
-
-        <!-- =================================================
-             GROOMER
-        ================================================== -->
-
-        @elseif ($role === 'GROOMER')
-
-            <h1>
-
-                Grooming Care for
-
-                <span>
-                    Every Pet
-                </span>
-
-            </h1>
-
-
-            <p>
-
-                Manage your assigned
-                appointments and create
-                grooming reports for pets
-                after their grooming sessions.
-
-            </p>
-        @endif
-
+        🐾
 
     </div>
 
 
     <!-- =================================================
-         IMAGE
+         CUSTOMER
     ================================================== -->
 
-    <div class="pet-icon">
+    @if ($role === 'CUSTOMER')
 
-        <img
-            src="{{ asset('pets.png') }}"
-            alt="Pets"
+        <h1>
+
+            Better Care for
+
+            <span>
+                Every Pet
+            </span>
+
+        </h1>
+
+
+        <p>
+
+            Manage your pets, book grooming
+            appointments, keep track of their
+            grooming history, and explore
+            grooming services — all in one place.
+
+        </p>
+
+
+        <a
+            href="{{ route('pets.index') }}"
+            class="hero-button"
         >
 
-    </div>
+            Manage My Pets &rarr;
 
+        </a>
+
+
+    <!-- =================================================
+         GROOMER
+    ================================================== -->
+
+    @elseif ($role === 'GROOMER')
+
+        <h1>
+
+            Grooming Care for
+
+            <span>
+                Every Pet
+            </span>
+
+        </h1>
+
+
+        <p>
+
+            Manage your assigned
+            appointments and create
+            grooming reports for pets
+            after their grooming sessions.
+
+        </p>
+
+    @endif
+
+</div>
+
+
+<!-- =================================================
+     IMAGE
+================================================= -->
+
+<div class="pet-icon">
+
+    <img
+        src="{{ asset('pets.png') }}"
+        alt="Pets"
+    >
+
+</div>
+```
 
 </section>
 
