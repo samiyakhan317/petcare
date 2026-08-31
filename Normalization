@@ -1,0 +1,11 @@
+Normalization
+
+a.Explain if your converted Schema is in 1NF or not. If not, decompose it to 1NF. 
+Already in 1NF because there are no multivalued, composite attributes or nested relations. So no decomposition is needed.
+
+b.Explain if your converted Schema is in 2NF or not. If not, decompose it to 2NF. Can there be any partial functional dependencies in your relational schema?
+As it is already in 1NF and all attributes depend on the whole key. Disallows partial dependencies (transitive dependencies can exist in 2NF)
+
+
+Explain if your converted Schema is in 3NF or not. If not, decompose it to 3NF. Can there be any transitive dependencies in your relational schema?
+As for it to be in 3NF it must be in 2NF and it is in 2NF also all attributes depend on nothing but the key (No transitive dependencies exits)
