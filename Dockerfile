@@ -30,8 +30,8 @@ WORKDIR /var/www/html
 # Copy your codebase into the container
 COPY . .
 
-# Run Composer Install with --no-scripts to prevent package scripts from blocking the build
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+# Run Composer Install forcing it to ignore local platform limits and hooks
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --ignore-platform-reqs
 
 # Set correct storage and cache permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
